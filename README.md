@@ -25,3 +25,4 @@
 
 # Ссылки
 [Global ModData](https://github.com/MrBounty/PZ-Mod---Doc/blob/main/How%20to%20use%20global%20modData.md)
+[Руководство по оформлению README](https://gist.github.com/Jekins/2bf2d0638163f1294637)

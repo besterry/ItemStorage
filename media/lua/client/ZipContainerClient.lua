@@ -77,6 +77,17 @@ function ZipContainer:addItems(items)
     self:setModData()
 end
 
+---@return integer
+function ZipContainer:countItems()
+    local count = 0
+    for _, typeTables in pairs(self.modData) do
+        for _, _ in pairs(typeTables) do
+            count = count + 1
+        end
+    end
+    return count
+end
+
 return {
     ZipContainer = ZipContainer
 }

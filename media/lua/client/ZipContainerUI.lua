@@ -29,16 +29,13 @@ local function refreshContainer(pane, page)
     local isCollapsed = page.isCollapsed
     if container:getType() == ZIP_CONTAINER_TYPE then
         if isCollapsed then
-            print('clean1', pane.inventory:getItems():size())
             container:removeAllItems()
-            -- pane.inventory = container
-            print('clean2', pane.inventory:getItems():size())
         else
-            print('add1', pane.inventory:getItems():size())
             local zipContainer = ZipContainer:new(container)
-            -- pane.inventory = zipContainer:makeItems()
-            zipContainer:makeItems()
-            print('add2', pane.inventory:getItems():size())
+            local count = zipContainer:countItems()
+            if container:getItems():size() ~= count then --- FIXME: Спорная оптимизация, проверка только по количеству можт вызвать неожиданные эффекты. Нужно сделать какой-то кеш но я пока не придумал как
+                zipContainer:makeItems()
+            end
         end
     end
 end
@@ -56,44 +53,36 @@ end
 
 function PatchPage:selectContainer(button)
     print('-----selectContainer-----')
-    refreshContainer(self.inventoryPane, self)
+    refreshContainer(self.inventoryPane, self) -- TODO: удалять из прошлого контейнера
     return ISInventoryPage_base.selectContainer(self, button)
 end
 
 function PatchPane:refreshContainer()
-    -- local playerLoot = getPlayerLoot(self.player).inventory
-    -- local superContainer = SuperContainer:new(playerLoot)
-    -- print('playerLoot', playerLoot:getType())
-    -- print('refreshContainer')
-    -- print('self.inventory', self.inventory:getType())
-    -- print('self.inventoryPage.isCollapsed', self.inventoryPage.isCollapsed)
-    -- print('self.inventoryPage.toggleStove:getIsVisible()', self.inventoryPage.toggleStove:getIsVisible())
-    -- print('container:getType()', container:getType())
-    -- ---@type ItemContainer
-    -- local container = self.inventory
-    -- if container:getType() == ZIP_CONTAINER_TYPE then
-    -- -- if container:getType() == 'counter' then
-    --     local zipContainer = ZipContainer:new(container)
-    --     self.inventory = zipContainer:makeItems()
-    -- end
     refreshContainer(self, self.inventoryPage)
     return ISInventoryPane_base.refreshContainer(self)
 end
 
 ---@param items InventoryItem[]
----@param container ItemContainer
-function PatchPane:transferItemsByWeight(items, container)
+---@param targetContainer ItemContainer
+function PatchPane:transferItemsByWeight(items, targetContainer)
     print('transferItemsByWeight')
-    if container:getType() == ZIP_CONTAINER_TYPE then
-        local zipContainer = ZipContainer:new(container)
+    if #items > 0 then
+        ---@type ItemContainer
+        local sourceContainer = items[1]:getContainer()
+        if sourceContainer:getType() == ZIP_CONTAINER_TYPE then
+            print('FROM CONTAINER')
+            -- TODO: добавить таймед экшин
+        end
+    end
+    if targetContainer:getType() == ZIP_CONTAINER_TYPE then
+        local zipContainer = ZipContainer:new(targetContainer)
         zipContainer:addItems(items)
-        -- self:refreshContainer()
         refreshContainer(self, self.inventoryPage)
         -- ISTimedActionQueue.add(ISInventoryTransferAction:new(playerObj, item, item:getContainer(), container)) -- TODO: Переписать
         return
     end
     -- self.superContainer = nil
-    return ISInventoryPane_base.transferItemsByWeight(self, items, container)
+    return ISInventoryPane_base.transferItemsByWeight(self, items, targetContainer)
 end
 
 -- local makeHooks
@@ -129,5 +118,5 @@ GreloadHookes = reloadHookes
 -- Events.OnCreateUI.Add(makeHooks)
 Events.OnGameStart.Add(makeHooks)
 
-Events.OnResetLua.Add(removeHooks)
+-- Events.OnResetLua.Add(removeHooks)
 

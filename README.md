@@ -12,14 +12,15 @@
 
 Карат:
 - [x] Сделать тайл
-- Добавлно 3 тайла.
-- Настройки:
+
+Добавлно 3 тайла.  
+Настройки:
 1. Можно поднимать;
 2. Вместимость 100;
 3. CustomName = ZipContainer
 4. ContainerType = ZipContainer
-5. PaintingType = ZipContainer
-- Названия тайлов:
+5. PaintingType = ZipContainer  
+Названия тайлов:
 1. ZipContainer_01_0
 2. ZipContainer_01_1
 3. ZipContainer_01_2

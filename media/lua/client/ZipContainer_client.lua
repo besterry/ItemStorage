@@ -1,6 +1,7 @@
 local MOD_NAME = 'ZipContainer'
 
 ---@class ItemTable
+---@field id integer
 ---@field condition number
 ---@field delta number
 ---@field hunger number
@@ -36,6 +37,7 @@ function ZipContainer:makeItems()
     for type, typeTables in pairs(self.modData) do
         for _, typeTable in pairs(typeTables) do
             local item = InventoryItemFactory.CreateItem(type);
+            item:setID(typeTable.id)
             item:setCondition(typeTable.condition)
             if typeTable.delta then
                 item = item  --[[@as DrainableComboItem]]
@@ -67,6 +69,7 @@ function ZipContainer:addItems(items)
             hunger = foodItem:getHungChange()
         end
         table.insert(typeTable, {
+            id = item:getID(),
             condition = item:getCondition(),
             weight = item:getUnequippedWeight(),
             delta = delta,
@@ -77,12 +80,49 @@ function ZipContainer:addItems(items)
     self:setModData()
 end
 
+---@param items InventoryItem[]
+function ZipContainer:removeItems(items)
+    for _, item in pairs(items) do
+        local type = item:getFullType()
+        local id = item:getID()
+        local typeTables = self.modData[type] or {}
+        for idx, typeTable in ipairs(typeTables) do
+            -- print('typeTable', bcUtils.dump(typeTable))
+            if typeTable and typeTable.id == id then
+                table.remove(typeTables, idx)
+            end
+        end
+        self.modData[type] = typeTables
+    end
+    self:setModData()
+end
+
+---@param items InventoryItem[]
+---@param sourceContainer ItemContainer
+function ZipContainer:putItems(items, sourceContainer)
+    self:addItems(items)
+    for _, item in pairs(items) do
+        sourceContainer:DoRemoveItem(item)
+    end
+end
+
+---@param items InventoryItem[]
+---@param targetContainer ItemContainer
+function ZipContainer:pickUpItems(items, targetContainer)
+    self:removeItems(items)
+    for _, item in pairs(items) do
+        targetContainer:addItem(item)
+    end
+end
+
 ---@return integer
 function ZipContainer:countItems()
     local count = 0
     for _, typeTables in pairs(self.modData) do
-        for _, _ in pairs(typeTables) do
-            count = count + 1
+        for _, typeTable in pairs(typeTables) do
+            if typeTable then
+                count = count + 1
+            end
         end
     end
     return count

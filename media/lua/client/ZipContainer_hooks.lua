@@ -1,8 +1,5 @@
-local main = require 'ZipContainerClient'
+local main = require 'ZipContainer_client'
 local ZipContainer = main.ZipContainer
--- getPlayerLoot(self.player).inventoryPane.selected = {};
--- getPlayerInventory(self.player).inventoryPane.selected = {};
--- InventoryItemFactory.CreateItem("Base.Plank");
 
 local ZIP_CONTAINER_TYPE = 'ZipContainer'
 
@@ -18,8 +15,6 @@ local ISInventoryPage_base = {
 
 local PatchPane = {}
 local PatchPage = {}
-
--- ISInventoryPane:renderdetails(doDragged)
 
 ---@param pane ISInventoryPane
 ---@param page ISInventoryPage
@@ -41,19 +36,17 @@ local function refreshContainer(pane, page)
 end
 
 function PatchPage:clearMaxDrawHeight() -- SHOW
-    print('clearMaxDrawHeight', self.isCollapsed)
     refreshContainer(self.inventoryPane, self)
     return ISInventoryPage_base.clearMaxDrawHeight(self)
 end
 function PatchPage:setMaxDrawHeight(height) -- HIDE
-    print('setMaxDrawHeight', self.isCollapsed)
     refreshContainer(self.inventoryPane, self)
     return ISInventoryPage_base.setMaxDrawHeight(self, height)
 end
 
 function PatchPage:selectContainer(button)
     print('-----selectContainer-----')
-    refreshContainer(self.inventoryPane, self) -- TODO: удалять из прошлого контейнера
+    refreshContainer(self.inventoryPane, self) -- TODO: нужно очищать прошлый контейнер. Понять как выбрать прошлый контейнер
     return ISInventoryPage_base.selectContainer(self, button)
 end
 
@@ -65,23 +58,27 @@ end
 ---@param items InventoryItem[]
 ---@param targetContainer ItemContainer
 function PatchPane:transferItemsByWeight(items, targetContainer)
-    print('transferItemsByWeight')
+    ---@type ItemContainer
+    local sourceContainer = nil
     if #items > 0 then
-        ---@type ItemContainer
-        local sourceContainer = items[1]:getContainer()
-        if sourceContainer:getType() == ZIP_CONTAINER_TYPE then
-            print('FROM CONTAINER')
-            -- TODO: добавить таймед экшин
-        end
+        sourceContainer = items[1]:getContainer()
     end
-    if targetContainer:getType() == ZIP_CONTAINER_TYPE then
+
+    if sourceContainer and sourceContainer:getType() == ZIP_CONTAINER_TYPE then
+        local zipContainer = ZipContainer:new(sourceContainer)
+        -- item:setContainer(ItemContainer itemContainer) -- NEED TRY
+        zipContainer:pickUpItems(items, targetContainer)
+        refreshContainer(self, self.inventoryPage)
+        -- TODO: добавить таймед экшин
+        return
+    end
+    if sourceContainer and targetContainer:getType() == ZIP_CONTAINER_TYPE then
         local zipContainer = ZipContainer:new(targetContainer)
-        zipContainer:addItems(items)
+        zipContainer:putItems(items, sourceContainer)
         refreshContainer(self, self.inventoryPage)
         -- ISTimedActionQueue.add(ISInventoryTransferAction:new(playerObj, item, item:getContainer(), container)) -- TODO: Переписать
         return
     end
-    -- self.superContainer = nil
     return ISInventoryPane_base.transferItemsByWeight(self, items, targetContainer)
 end
 
@@ -105,18 +102,9 @@ local removeHooks = function ()
     ISInventoryPage.clearMaxDrawHeight = ISInventoryPage_base.clearMaxDrawHeight
 end
 
-local reloadHookes = function ()
-    removeHooks()
-    makeHooks()
-end
--- makeHooks()
-
 GmakeHooks = makeHooks -- TODO: дебаг переменная. Удалить
 GremoveHooks = removeHooks
-GreloadHookes = reloadHookes
 
 -- Events.OnCreateUI.Add(makeHooks)
 Events.OnGameStart.Add(makeHooks)
-
--- Events.OnResetLua.Add(removeHooks)
 

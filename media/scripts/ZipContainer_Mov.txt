@@ -1,0 +1,18 @@
+module ZipContainer
+{
+	imports 
+    {
+        Base
+    }
+	
+	item ZipContainer
+	{
+		DisplayCategory = Furniture,
+		Type			= Moveable,
+		Icon			= default,
+		Weight		  	= 10,
+		DisplayName		= Zip Container,
+		WorldObjectSprite	= ZipContainer_01_0,
+	}
+	
+}

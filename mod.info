@@ -1,7 +1,7 @@
 name=ZipContainer
 poster=poster.png
 id=ZipContainer
-description=123
+description=Contain loot in table modData instead of InventoryItems
 
 
 pack=ZipContainer

@@ -1,0 +1,25 @@
+module ZipContainer
+{
+	imports 
+    {
+        Base
+    }
+	
+/**********************************************************************/	
+	recipe Make ZipContainer
+    {
+        Nails = 10,
+        Plank = 4,
+        keep Saw,
+        keep [Recipe.GetItemTypes.Hammer],
+
+        Sound:Sawing,
+        AnimNode:SawLog,
+        Result:ZipContainer,
+        Prop1:Source=3,
+        Prop2:Source=2,
+        Time:100.0,
+    }
+/**********************************************************************/		
+
+}

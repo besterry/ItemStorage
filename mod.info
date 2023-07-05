@@ -1,5 +1,8 @@
-name=ItemStorage
+name=ZipContainer
 poster=poster.png
-id=ItemStorage
-description=Add containers storing information in a table
-versionMin=41.78
+id=ZipContainer
+description=123
+
+
+pack=ZipContainer
+tiledef=ZipContainer 6342

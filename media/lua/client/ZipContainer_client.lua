@@ -8,22 +8,28 @@ local MOD_NAME = 'ZipContainer'
 ---@field weight number
 
 ---@class ZipContainer
----@field itemContainer ItemContainer
----@field isoObject IsoObject
----@field modData table<string, ItemTable[]>
+-- -@field itemContainer ItemContainer
+-- -@field isoObject IsoObject
+-- -@field modData table<string, ItemTable[]>
 local ZipContainer = {}
 
 ---@param container ItemContainer
+---@return ZipContainer
 function ZipContainer:new(container)
     local o = {}
     setmetatable(o, self)
     self.__index = self
     -- o.isoPlayer = getPlayer()
-    o.itemContainer = container
-    o.isoObject = container:getParent()
-    o.modData = o.isoObject:getModData()[MOD_NAME] or {}
+    -- o.itemContainer = container
+    -- ---@type IsoObject
+    -- o.isoObject = container:getParent()
+    -- o.modData = o.isoObject:getModData()[MOD_NAME] or {}
+    self.itemContainer = container
+    ---@type IsoObject
+    self.isoObject = container:getParent()
+    self.modData = o.isoObject:getModData()[MOD_NAME] or {}
     -- print('modData', bcUtils.dump(o.modData))
-    return o
+    return self
 end
 
 function ZipContainer:setModData()

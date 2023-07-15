@@ -1,8 +1,6 @@
 local main = require 'ZipContainer_client'
 local ZipContainer = main.ZipContainer
 
-local ZIP_CONTAINER_TYPE = 'ZipContainer'
-
 local ISInventoryPane_base = {
     transferItemsByWeight = ISInventoryPane.transferItemsByWeight,
     refreshContainer = ISInventoryPane.refreshContainer,
@@ -13,77 +11,56 @@ local ISInventoryPage_base = {
     clearMaxDrawHeight = ISInventoryPage.clearMaxDrawHeight,
 }
 local ISInventoryTransferAction_base = {
-    new = ISInventoryTransferAction.new
+    new = ISInventoryTransferAction.new,
+    perform = ISInventoryTransferAction.perform,
+    transferItem = ISInventoryTransferAction.transferItem
 }
 
 local PatchPane = {}
 local PatchPage = {}
 local PathcTA = {}
 
----@type InventoryItem[]
-local qItemsList = {}
 
 ---@param pane ISInventoryPane
 ---@param page ISInventoryPage
 local function refreshContainer(pane, page)
     ---@type ItemContainer
     local container = pane.inventory
+    if pane.lastinventory and ZipContainer.isValid(pane.lastinventory) then
+        container = pane.lastinventory
+    end
     local isCollapsed = page.isCollapsed
-    if container:getType() == ZIP_CONTAINER_TYPE then
-        -- print('refreshContainer', container:getItems():size(), isCollapsed)
-        if isCollapsed then
+    local zipContainer = ZipContainer:new(container)
+    local isVisible = pane.inventory == pane.lastinventory
+    if zipContainer then
+        print('zipContainer state: ', isCollapsed, isVisible)
+        if isCollapsed or not isVisible then
+            print('colapsed')
             container:removeAllItems()
         else
-            local zipContainer = ZipContainer:new(container)
             local count = zipContainer:countItems()
-            if container:getItems():size() ~= count then --- FIXME: Спорная оптимизация, проверка только по количеству можт вызвать неожиданные эффекты. Нужно сделать какой-то кеш но я пока не придумал как
+            print('prerender items', count)
+            if container:getItems():size() ~= count then --- FIXME: Нужно проверять чексумму
+                print('real render')
                 zipContainer:makeItems()
             end
         end
     end
 end
 
----@param character IsoPlayer
----@param item InventoryItem
----@param sourceContainer ItemContainer
----@param targetContainer ItemContainer
+
 ---@param ta ISInventoryTransferAction
-local function onTransferComplete(character, item, sourceContainer, targetContainer, ta)
-    local isSourceZip = sourceContainer:getType() == ZIP_CONTAINER_TYPE
-    local isTargetZip = targetContainer:getType() == ZIP_CONTAINER_TYPE
-    if isSourceZip then
-        local zipContainer = ZipContainer:new(sourceContainer)
-        -- item:setContainer(ItemContainer itemContainer) -- NEED TRY
-        zipContainer:removeItems({item})
-        -- zipContainer:pickUpItems({item}, targetContainer)
-        -- refreshContainer(self, self.inventoryPage)
-        -- return
+local function onTransferComplete(ta)
+-- local function onTransferComplete(character, item, sourceContainer, targetContainer, ta)
+    local item, sourceContainer, targetContainer = ta.item, ta.srcContainer, ta.destContainer
+    local sourceZip = ZipContainer:new(sourceContainer)
+    local targetZip = ZipContainer:new(targetContainer)
+    if sourceZip then
+        sourceZip:removeItems({item})
     end
-    if isTargetZip then
-        local zipContainer = ZipContainer:new(targetContainer)
-        zipContainer:addItems({item})
-        -- zipContainer:putItems({item}, sourceContainer)
-        -- print('zipContainer', bcUtils.dump(zipContainer.modData))
-        -- refreshContainer(self, self.inventoryPage)
-        -- return
+    if targetZip then
+        targetZip:addItems({item})
     end
-    -- local actionQueue = ISTimedActionQueue.getTimedActionQueue(character)
-    -- local indexSelf = actionQueue:indexOf(ta)
-    -- print('indexSelf', indexSelf)
-    -- print('actionQueue', #actionQueue.queue)
-    -- local isFinal = false
-    -- if isSourceZip or isTargetZip then
-    --     for idx, qItem in pairs(qItemsList) do
-    --         if qItem:getID() == item:getID() then
-    --             if idx == #qItemsList then
-    --                 isFinal = true
-    --             end
-    --         end
-    --     end
-    -- end
-    -- if isFinal then
-    --     qItemsList = {}
-    -- end
 end
 
 function PatchPage:clearMaxDrawHeight() -- SHOW
@@ -106,66 +83,48 @@ function PatchPane:refreshContainer()
     return ISInventoryPane_base.refreshContainer(self)
 end
 
----@param items InventoryItem[]
----@param targetContainer ItemContainer
-function PatchPane:transferItemsByWeight(items, targetContainer)
-    -- ---@type ItemContainer
-    -- local sourceContainer = nil
-    -- if #items > 0 then
-    --     sourceContainer = items[1]:getContainer()
-    -- end
-
-    -- if sourceContainer and sourceContainer:getType() == ZIP_CONTAINER_TYPE then
-    --     -- print('aaaaa')
-    --     qItemsList = items
-    --     -- local zipContainer = ZipContainer:new(sourceContainer)
-    --     -- item:setContainer(ItemContainer itemContainer) -- NEED TRY
-    --     -- zipContainer:pickUpItems(items, targetContainer)
-    --     -- refreshContainer(self, self.inventoryPage)
-    --     -- TODO: добавить таймед экшин
-    --     -- return
-    -- end
-    -- if targetContainer:getType() == ZIP_CONTAINER_TYPE then
-    --     -- print('bbbbbb')
-    --     qItemsList = items
-    --     -- local zipContainer = ZipContainer:new(targetContainer)
-    --     -- zipContainer:putItems(items, sourceContainer)
-    --     -- refreshContainer(self, self.inventoryPage)
-    --     -- ISTimedActionQueue.add(ISInventoryTransferAction:new(playerObj, item, item:getContainer(), container)) -- TODO: Переписать
-    --     -- return
-    -- end
-    return ISInventoryPane_base.transferItemsByWeight(self, items, targetContainer)
-end
-
-function PathcTA:new(character, item, srcContainer, destContainer, time)
-    local o = ISInventoryTransferAction_base.new(self, character, item, srcContainer, destContainer, time)
-    o.onCompleteFunc = onTransferComplete
-    o.onCompleteArgs = {character, item, srcContainer, destContainer, o}
+---@param item InventoryItem
+function PathcTA:transferItem(item)
+    local o = ISInventoryTransferAction_base.transferItem(self, item)
+    onTransferComplete(self)
     return o
 end
+
+-- local lastMillis = 0
+-- local onTick = function()
+--     local currentMillis = math.floor(getTimeInMillis()/10)
+--     if lastMillis ~= currentMillis then
+--         lastMillis = currentMillis
+--         debounceTimerRender = debounceTimerRender + 1
+--         debounceTimerModData = debounceTimerModData + 1
+--         -- print('tick', debounceTimer)
+--     end
+-- end
 
 -- local makeHooks
 local makeHooks = function ()
     print('makeHooks')
     ISInventoryPane.refreshContainer = PatchPane.refreshContainer
-    ISInventoryPane.transferItemsByWeight = PatchPane.transferItemsByWeight
 
     ISInventoryPage.selectContainer = PatchPage.selectContainer
     ISInventoryPage.setMaxDrawHeight = PatchPage.setMaxDrawHeight
     ISInventoryPage.clearMaxDrawHeight = PatchPage.clearMaxDrawHeight
 
-    ISInventoryTransferAction.new = PathcTA.new
+    ISInventoryTransferAction.transferItem = PathcTA.transferItem
+
+    -- Events.OnTick.Add(onTick);
 end
 local removeHooks = function ()
     print('removeHooks')
     ISInventoryPane.refreshContainer = ISInventoryPane_base.refreshContainer
-    ISInventoryPane.transferItemsByWeight = ISInventoryPane_base.transferItemsByWeight
 
     ISInventoryPage.selectContainer = ISInventoryPage_base.selectContainer
     ISInventoryPage.setMaxDrawHeight = ISInventoryPage_base.setMaxDrawHeight
     ISInventoryPage.clearMaxDrawHeight = ISInventoryPage_base.clearMaxDrawHeight
 
-    ISInventoryTransferAction.new = ISInventoryTransferAction_base.new
+    ISInventoryTransferAction.transferItem = ISInventoryTransferAction_base.transferItem
+
+    -- Events.OnTick.Remove(onTick);
 end
 
 GmakeHooks = makeHooks -- TODO: дебаг переменная. Удалить
@@ -174,9 +133,10 @@ GremoveHooks = removeHooks
 -- Events.OnCreateUI.Add(makeHooks)
 Events.OnGameStart.Add(makeHooks)
 
--- TODO: добавить логирование когда ТА завершилось. Для этого нужно сделать иньекцию в:
--- ISInventoryTransferAction:stop() когда ТА завершилась преждевременно
--- ISInventoryTransferAction:perform() когда ТА завершилась нормально
--- Нужно посчитать сколько айтемов завершилось нормально и залогировать таблицу моддаты
--- Очередь хранится в ISTimedActionQueue.getTimedActionQueue(character).queue
--- Сложная задача. Оставим на потом
+-- TODO: 
+--0. Разобраться с рассинхроном. Кешировать очередь или придумать ещё что-то
+--1. добавить логирование. Пока непонятно как это сделать
+--2. брать предметы из ящика при крафте
+--3. очищать ящик если отошли от него с открытой панелью
+--3. запретить поднимать ящик если в нём есть предметы
+--4. запретить складывать сложные предметы. Разобраться какие предметы сложные

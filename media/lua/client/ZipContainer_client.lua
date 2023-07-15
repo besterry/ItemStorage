@@ -1,4 +1,5 @@
 local MOD_NAME = 'ZipContainer'
+local ZIP_CONTAINER_TYPE = 'ZipContainer'
 
 ---@class ItemTable
 ---@field id integer
@@ -22,7 +23,7 @@ local MOD_NAME = 'ZipContainer'
 local ZipContainer = {}
 
 ---@param container ItemContainer
----@return ZipContainer
+---@return ZipContainer | nil
 function ZipContainer:new(container)
     local o = {}
     setmetatable(o, self)
@@ -32,6 +33,10 @@ function ZipContainer:new(container)
     -- ---@type IsoObject
     -- o.isoObject = container:getParent()
     -- o.modData = o.isoObject:getModData()[MOD_NAME] or {}
+    if not self.isValid(container) then
+        return
+    end
+
     ---@type ItemContainer
     self.itemContainer = container
     ---@type IsoObject
@@ -40,6 +45,10 @@ function ZipContainer:new(container)
     self.modData = o.isoObject:getModData()[MOD_NAME] or {}
     -- print('modData', bcUtils.dump(o.modData))
     return self
+end
+
+function ZipContainer.isValid(container)
+    return container:getType() == ZIP_CONTAINER_TYPE
 end
 
 function ZipContainer:setModData()
@@ -142,9 +151,9 @@ function ZipContainer:addItems(items)
             age = item:getAge(),
             isBroken = item:isBroken(),
         }
-        print('item:getVisual(): ', item:getVisual()) -- относится к одежде. Там много параметров. Вероятно проще запретить хранить одежду
+        -- print('item:getVisual(): ', item:getVisual()) -- относится к одежде. Там много параметров. Вероятно проще запретить хранить одежду
         -- print('item:getVisual():toString() ', item:getVisual():toString())
-        print('item:getColor() ', item:getColor())
+        -- print('item:getColor() ', item:getColor())
         -- print('item:getColor():toString() ', item:getColor():toString())
         if item:isCooked() then
             resultTable['isCooked'] = item:isCooked()

@@ -1,4 +1,5 @@
 local main = require 'ZipContainer_client'
+local utils = require 'ZipContainer_utils'
 local ZipContainer = main.ZipContainer
 
 local ISInventoryPane_base = {
@@ -20,26 +21,28 @@ local PatchPane = {}
 local PatchPage = {}
 local PathcTA = {}
 
-
 ---@param pane ISInventoryPane
 ---@param page ISInventoryPage
 local function refreshContainer(pane, page)
     ---@type ItemContainer
     local container = pane.inventory
-    if pane.lastinventory and ZipContainer.isValid(pane.lastinventory) then
-        container = pane.lastinventory
-    end
     local isCollapsed = page.isCollapsed
     local zipContainer = ZipContainer:new(container)
     local isVisible = pane.inventory == pane.lastinventory
+    -- print('zipContainer state: ', isCollapsed, isVisible)
+    if pane.lastinventory and ZipContainer.isValid(pane.lastinventory) and not isVisible then
+        print('clear last')
+        pane.lastinventory:removeAllItems()
+    end
     if zipContainer then
-        print('zipContainer state: ', isCollapsed, isVisible)
-        if isCollapsed or not isVisible then
-            print('colapsed')
+        -- print('zipContainer state: ', isCollapsed, isVisible)
+        -- if isCollapsed or not isVisible then
+        if isCollapsed then
+            print('clear')
             container:removeAllItems()
         else
             local count = zipContainer:countItems()
-            print('prerender items', count)
+            -- print('prerender items', count)
             if container:getItems():size() ~= count then --- FIXME: Нужно проверять чексумму
                 print('real render')
                 zipContainer:makeItems()
@@ -48,18 +51,24 @@ local function refreshContainer(pane, page)
     end
 end
 
-
 ---@param ta ISInventoryTransferAction
 local function onTransferComplete(ta)
--- local function onTransferComplete(character, item, sourceContainer, targetContainer, ta)
     local item, sourceContainer, targetContainer = ta.item, ta.srcContainer, ta.destContainer
     local sourceZip = ZipContainer:new(sourceContainer)
     local targetZip = ZipContainer:new(targetContainer)
     if sourceZip then
         sourceZip:removeItems({item})
+        utils.debounce('onTransferComplete.removeItems', 50, function ()
+            print('debounce.removeItems')
+            sourceZip:setModData()
+        end)
     end
     if targetZip then
         targetZip:addItems({item})
+        utils.debounce('onTransferComplete.addItems', 50, function ()
+            print('debounce.addItems')
+            targetZip:setModData()
+        end)
     end
 end
 
@@ -73,8 +82,7 @@ function PatchPage:setMaxDrawHeight(height) -- HIDE
 end
 
 function PatchPage:selectContainer(button)
-    -- print('-----selectContainer-----')
-    refreshContainer(self.inventoryPane, self) -- TODO: нужно очищать прошлый контейнер. Понять как выбрать прошлый контейнер
+    refreshContainer(self.inventoryPane, self)
     return ISInventoryPage_base.selectContainer(self, button)
 end
 
@@ -90,18 +98,6 @@ function PathcTA:transferItem(item)
     return o
 end
 
--- local lastMillis = 0
--- local onTick = function()
---     local currentMillis = math.floor(getTimeInMillis()/10)
---     if lastMillis ~= currentMillis then
---         lastMillis = currentMillis
---         debounceTimerRender = debounceTimerRender + 1
---         debounceTimerModData = debounceTimerModData + 1
---         -- print('tick', debounceTimer)
---     end
--- end
-
--- local makeHooks
 local makeHooks = function ()
     print('makeHooks')
     ISInventoryPane.refreshContainer = PatchPane.refreshContainer
@@ -111,8 +107,6 @@ local makeHooks = function ()
     ISInventoryPage.clearMaxDrawHeight = PatchPage.clearMaxDrawHeight
 
     ISInventoryTransferAction.transferItem = PathcTA.transferItem
-
-    -- Events.OnTick.Add(onTick);
 end
 local removeHooks = function ()
     print('removeHooks')
@@ -123,20 +117,21 @@ local removeHooks = function ()
     ISInventoryPage.clearMaxDrawHeight = ISInventoryPage_base.clearMaxDrawHeight
 
     ISInventoryTransferAction.transferItem = ISInventoryTransferAction_base.transferItem
-
-    -- Events.OnTick.Remove(onTick);
 end
 
 GmakeHooks = makeHooks -- TODO: дебаг переменная. Удалить
 GremoveHooks = removeHooks
 
+if AUD then
+    AUD.setButton(1, "Add hooks", makeHooks)
+    AUD.setButton(2, "Remove hooks", removeHooks)
+end
+
 -- Events.OnCreateUI.Add(makeHooks)
 Events.OnGameStart.Add(makeHooks)
 
 -- TODO: 
---0. Разобраться с рассинхроном. Кешировать очередь или придумать ещё что-то
 --1. добавить логирование. Пока непонятно как это сделать
 --2. брать предметы из ящика при крафте
---3. очищать ящик если отошли от него с открытой панелью
 --3. запретить поднимать ящик если в нём есть предметы
 --4. запретить складывать сложные предметы. Разобраться какие предметы сложные

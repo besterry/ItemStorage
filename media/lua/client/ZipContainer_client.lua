@@ -47,14 +47,26 @@ function ZipContainer.isValid(container)
     return container:getType() == ZIP_CONTAINER_TYPE
 end
 
+---@param containersArr ArrayList
+function ZipContainer.isValidInArray(containersArr)
+    local hasZip = false
+    for i = 0, containersArr:size() - 1 do
+        local zipContainer = ZipContainer.isValid(containersArr:get(i))
+        if zipContainer then
+            hasZip = true
+        end
+    end
+    return hasZip
+end
+
 function ZipContainer:setModData()
     self.isoObject:getModData()[MOD_NAME] = self.modData
     self.isoObject:transmitModData()
 end
 
----@return ItemContainer
-function ZipContainer:makeItems()
-    self.itemContainer:removeAllItems()
+---@return InventoryItem[]
+function ZipContainer:getItems()
+    local resultList = {}
     for type, typeTables in pairs(self.modData) do
         for idx, typeTable in pairs(typeTables) do
             local item = InventoryItemFactory.CreateItem(type);
@@ -80,12 +92,53 @@ function ZipContainer:makeItems()
                     item = item  --[[@as Food]]
                     item:setHungChange(typeTable.hunger)
                 end
-                self.itemContainer:addItem(item)
+                table.insert(resultList, item)
             else
                 typeTables[idx] = nil
             end
         end
     end
+    return resultList
+end
+
+---@return ItemContainer
+function ZipContainer:makeItems()
+    self.itemContainer:removeAllItems()
+    local items = self:getItems()
+    for _, item in pairs(items) do
+        self.itemContainer:addItem(item)
+    end
+    -- for type, typeTables in pairs(self.modData) do
+    --     for idx, typeTable in pairs(typeTables) do
+    --         local item = InventoryItemFactory.CreateItem(type);
+    --         if item then
+    --             item:setID(typeTable.id)
+    --             item:setCondition(typeTable.condition)
+    --             item:setAge(typeTable.age)
+    --             item:setBroken(typeTable.isBroken)
+
+    --             if typeTable.isCooked then
+    --                 item:setCooked(typeTable.isCooked)
+    --                 item:setCookedString(typeTable.cookedString)
+    --             end
+    --             if typeTable.isBurnt then
+    --                 item:setBurnt(typeTable.isBurnt)
+    --                 item:setBurntString(typeTable.burntString)
+    --             end
+    --             if typeTable.delta then
+    --                 item = item  --[[@as DrainableComboItem]]
+    --                 item:setDelta(typeTable.delta)
+    --             end
+    --             if typeTable.hunger then
+    --                 item = item  --[[@as Food]]
+    --                 item:setHungChange(typeTable.hunger)
+    --             end
+    --             self.itemContainer:addItem(item)
+    --         else
+    --             typeTables[idx] = nil
+    --         end
+    --     end
+    -- end
     return self.itemContainer
 end
 
@@ -218,13 +271,20 @@ function ZipContainer:pickUpItems(items, targetContainer)
     end
 end
 
+---@param itemType string | nil
 ---@return integer
-function ZipContainer:countItems()
+function ZipContainer:countItems(itemType)
     local count = 0
-    for _, typeTables in pairs(self.modData) do
+    for _itemType, typeTables in pairs(self.modData) do
         for _, typeTable in pairs(typeTables) do
             if typeTable then
-                count = count + 1
+                if itemType then
+                    if itemType == _itemType then
+                        count = count + 1
+                    end
+                else
+                    count = count + 1
+                end
             end
         end
     end

@@ -1,5 +1,3 @@
-local delayDict
-
 -- copy from BravensUtils.DelayFunction
 local delayFn = function(func, delay)
 

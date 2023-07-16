@@ -1,5 +1,6 @@
 local MOD_NAME = 'ZipContainer'
 local ZIP_CONTAINER_TYPE = 'ZipContainer'
+local utils = require 'ZipContainer_utils'
 
 ---@class ItemTable
 ---@field id integer
@@ -228,6 +229,36 @@ function ZipContainer:countItems()
         end
     end
     return count
+end
+
+local function sortAndHash(list) -- Not actualy hash, just a tring. Cause sh1.lua works slow
+    table.sort(list)
+    local str = table.concat(list, ',')
+    return str
+    -- return utils.sha1.hex(str)
+end
+
+---@return string
+function ZipContainer:getHashOfModdata()
+    local resultList = {}
+    for _, typeTables in pairs(self.modData) do
+        for _, typeTable in pairs(typeTables) do
+            if typeTable then
+                table.insert(resultList, typeTable.id)
+            end
+        end
+    end
+    return sortAndHash(resultList)
+end
+
+function ZipContainer:getHashOfContains()
+    local resultList = {}
+    local itemsArr = self.itemContainer:getItems();
+    for i = 0, itemsArr:size()-1 do
+        local item = itemsArr:get(i);
+        table.insert(resultList, item:getID())
+    end
+    return sortAndHash(resultList)
 end
 
 return {

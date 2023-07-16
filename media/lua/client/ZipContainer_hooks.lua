@@ -17,9 +17,25 @@ local ISInventoryTransferAction_base = {
     transferItem = ISInventoryTransferAction.transferItem
 }
 
+local ISMoveableSpriteProps_base = {
+    objectNoContainerOrEmpty = ISMoveableSpriteProps.objectNoContainerOrEmpty
+}
+
 local PatchPane = {}
 local PatchPage = {}
 local PathcTA = {}
+local PatchMoveableSpriteProps = {}
+
+function PatchMoveableSpriteProps:objectNoContainerOrEmpty(object) -- NOTE: Запрещаем поднимать зип контейнер если он не пустой
+    for i=1, object:getContainerCount() do
+        local container = object:getContainerByIndex(i-1)
+        local zipContainer = ZipContainer:new(container)
+        if container and zipContainer and zipContainer:countItems() > 0 then
+            return false
+        end
+    end
+    return ISMoveableSpriteProps_base.objectNoContainerOrEmpty(self, object)
+end
 
 ---@param pane ISInventoryPane
 ---@param page ISInventoryPage
@@ -29,23 +45,22 @@ local function refreshContainer(pane, page)
     local isCollapsed = page.isCollapsed
     local zipContainer = ZipContainer:new(container)
     local isVisible = pane.inventory == pane.lastinventory
-    -- print('zipContainer state: ', isCollapsed, isVisible)
     if pane.lastinventory and ZipContainer.isValid(pane.lastinventory) and not isVisible then
         print('clear last')
-        pane.lastinventory:removeAllItems()
+        pane.lastinventory:removeAllItems() -- очищаем прошлый контейнер если требуется
     end
     if zipContainer then
-        -- print('zipContainer state: ', isCollapsed, isVisible)
-        -- if isCollapsed or not isVisible then
         if isCollapsed then
             print('clear')
-            container:removeAllItems()
+            container:removeAllItems() -- очищаем контейнер если требуется
         else
-            local count = zipContainer:countItems()
-            -- print('prerender items', count)
-            if container:getItems():size() ~= count then --- FIXME: Нужно проверять чексумму
+            -- local count = zipContainer:countItems()
+            local hash1 = zipContainer:getHashOfModdata()
+            local hash2 = zipContainer:getHashOfContains()
+            -- if container:getItems():size() ~= count then
+            if hash1 ~= hash2 then --- FIXME: Работает довольно медленно. Можно использовать вариант строкой выше, но это менее безопасно
                 print('real render')
-                zipContainer:makeItems()
+                zipContainer:makeItems() -- отрисовываем айтемы
             end
         end
     end
@@ -58,7 +73,7 @@ local function onTransferComplete(ta)
     local targetZip = ZipContainer:new(targetContainer)
     if sourceZip then
         sourceZip:removeItems({item})
-        utils.debounce('onTransferComplete.removeItems', 50, function ()
+        utils.debounce('onTransferComplete.removeItems', 50, function () -- дебаунс функция, выполнится через 50 тиков после последнего переноса элемента. Чтобы записать моддату для всех элементов сразу. Иначе тормозит
             print('debounce.removeItems')
             sourceZip:setModData()
         end)
@@ -107,6 +122,8 @@ local makeHooks = function ()
     ISInventoryPage.clearMaxDrawHeight = PatchPage.clearMaxDrawHeight
 
     ISInventoryTransferAction.transferItem = PathcTA.transferItem
+
+    ISMoveableSpriteProps.objectNoContainerOrEmpty = PatchMoveableSpriteProps.objectNoContainerOrEmpty
 end
 local removeHooks = function ()
     print('removeHooks')
@@ -117,6 +134,8 @@ local removeHooks = function ()
     ISInventoryPage.clearMaxDrawHeight = ISInventoryPage_base.clearMaxDrawHeight
 
     ISInventoryTransferAction.transferItem = ISInventoryTransferAction_base.transferItem
+
+    ISMoveableSpriteProps.objectNoContainerOrEmpty = ISMoveableSpriteProps_base.objectNoContainerOrEmpty
 end
 
 GmakeHooks = makeHooks -- TODO: дебаг переменная. Удалить
@@ -127,11 +146,9 @@ if AUD then
     AUD.setButton(2, "Remove hooks", removeHooks)
 end
 
--- Events.OnCreateUI.Add(makeHooks)
 Events.OnGameStart.Add(makeHooks)
 
 -- TODO: 
 --1. добавить логирование. Пока непонятно как это сделать
 --2. брать предметы из ящика при крафте
---3. запретить поднимать ящик если в нём есть предметы
 --4. запретить складывать сложные предметы. Разобраться какие предметы сложные

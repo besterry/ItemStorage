@@ -1,4 +1,6 @@
 local MOD_NAME = 'ZipContainer'
+local ZIP_CONTAINER_TYPE = 'ZipContainer'
+local utils = require 'ZipContainer_utils'
 
 ---@class ItemTable
 ---@field id integer
@@ -22,16 +24,15 @@ local MOD_NAME = 'ZipContainer'
 local ZipContainer = {}
 
 ---@param container ItemContainer
----@return ZipContainer
+---@return ZipContainer | nil
 function ZipContainer:new(container)
     local o = {}
     setmetatable(o, self)
     self.__index = self
-    -- o.isoPlayer = getPlayer()
-    -- o.itemContainer = container
-    -- ---@type IsoObject
-    -- o.isoObject = container:getParent()
-    -- o.modData = o.isoObject:getModData()[MOD_NAME] or {}
+    if not self.isValid(container) then
+        return
+    end
+
     ---@type ItemContainer
     self.itemContainer = container
     ---@type IsoObject
@@ -42,41 +43,102 @@ function ZipContainer:new(container)
     return self
 end
 
+function ZipContainer.isValid(container)
+    return container:getType() == ZIP_CONTAINER_TYPE
+end
+
+---@param containersArr ArrayList
+function ZipContainer.isValidInArray(containersArr)
+    local hasZip = false
+    for i = 0, containersArr:size() - 1 do
+        local zipContainer = ZipContainer.isValid(containersArr:get(i))
+        if zipContainer then
+            hasZip = true
+        end
+    end
+    return hasZip
+end
+
 function ZipContainer:setModData()
     self.isoObject:getModData()[MOD_NAME] = self.modData
     self.isoObject:transmitModData()
 end
 
+---@return InventoryItem[]
+function ZipContainer:getItems()
+    local resultList = {}
+    for type, typeTables in pairs(self.modData) do
+        for idx, typeTable in pairs(typeTables) do
+            local item = InventoryItemFactory.CreateItem(type);
+            if item then
+                item:setID(typeTable.id)
+                item:setCondition(typeTable.condition)
+                item:setAge(typeTable.age)
+                item:setBroken(typeTable.isBroken)
+
+                if typeTable.isCooked then
+                    item:setCooked(typeTable.isCooked)
+                    item:setCookedString(typeTable.cookedString)
+                end
+                if typeTable.isBurnt then
+                    item:setBurnt(typeTable.isBurnt)
+                    item:setBurntString(typeTable.burntString)
+                end
+                if typeTable.delta then
+                    item = item  --[[@as DrainableComboItem]]
+                    item:setDelta(typeTable.delta)
+                end
+                if typeTable.hunger then
+                    item = item  --[[@as Food]]
+                    item:setHungChange(typeTable.hunger)
+                end
+                table.insert(resultList, item)
+            else
+                typeTables[idx] = nil
+            end
+        end
+    end
+    return resultList
+end
+
 ---@return ItemContainer
 function ZipContainer:makeItems()
     self.itemContainer:removeAllItems()
-    for type, typeTables in pairs(self.modData) do
-        for _, typeTable in pairs(typeTables) do
-            local item = InventoryItemFactory.CreateItem(type);
-            item:setID(typeTable.id)
-            item:setCondition(typeTable.condition)
-            item:setAge(typeTable.age)
-            item:setBroken(typeTable.isBroken)
-
-            if typeTable.isCooked then
-                item:setCooked(typeTable.isCooked)
-                item:setCookedString(typeTable.cookedString)
-            end
-            if typeTable.isBurnt then
-                item:setBurnt(typeTable.isBurnt)
-                item:setBurntString(typeTable.burntString)
-            end
-            if typeTable.delta then
-                item = item  --[[@as DrainableComboItem]]
-                item:setDelta(typeTable.delta)
-            end
-            if typeTable.hunger then
-                item = item  --[[@as Food]]
-                item:setHungChange(typeTable.hunger)
-            end
-            self.itemContainer:addItem(item)
-        end
+    local items = self:getItems()
+    for _, item in pairs(items) do
+        self.itemContainer:addItem(item)
     end
+    -- for type, typeTables in pairs(self.modData) do
+    --     for idx, typeTable in pairs(typeTables) do
+    --         local item = InventoryItemFactory.CreateItem(type);
+    --         if item then
+    --             item:setID(typeTable.id)
+    --             item:setCondition(typeTable.condition)
+    --             item:setAge(typeTable.age)
+    --             item:setBroken(typeTable.isBroken)
+
+    --             if typeTable.isCooked then
+    --                 item:setCooked(typeTable.isCooked)
+    --                 item:setCookedString(typeTable.cookedString)
+    --             end
+    --             if typeTable.isBurnt then
+    --                 item:setBurnt(typeTable.isBurnt)
+    --                 item:setBurntString(typeTable.burntString)
+    --             end
+    --             if typeTable.delta then
+    --                 item = item  --[[@as DrainableComboItem]]
+    --                 item:setDelta(typeTable.delta)
+    --             end
+    --             if typeTable.hunger then
+    --                 item = item  --[[@as Food]]
+    --                 item:setHungChange(typeTable.hunger)
+    --             end
+    --             self.itemContainer:addItem(item)
+    --         else
+    --             typeTables[idx] = nil
+    --         end
+    --     end
+    -- end
     return self.itemContainer
 end
 
@@ -133,6 +195,9 @@ end
 ---@param items InventoryItem[]
 function ZipContainer:addItems(items)
     for key, item in pairs(items) do
+        if not self.itemContainer:contains(item) then
+            return
+        end
         local type = item:getFullType()
         local typeTable = self.modData[type] or {} --[[@as zipTable]]
         local resultTable = {
@@ -142,9 +207,9 @@ function ZipContainer:addItems(items)
             age = item:getAge(),
             isBroken = item:isBroken(),
         }
-        print('item:getVisual(): ', item:getVisual()) -- относится к одежде. Там много параметров. Вероятно проще запретить хранить одежду
+        -- print('item:getVisual(): ', item:getVisual()) -- относится к одежде. Там много параметров. Вероятно проще запретить хранить одежду
         -- print('item:getVisual():toString() ', item:getVisual():toString())
-        print('item:getColor() ', item:getColor())
+        -- print('item:getColor() ', item:getColor())
         -- print('item:getColor():toString() ', item:getColor():toString())
         if item:isCooked() then
             resultTable['isCooked'] = item:isCooked()
@@ -165,12 +230,15 @@ function ZipContainer:addItems(items)
         table.insert(typeTable, resultTable)
         self.modData[type] = typeTable
     end
-    self:setModData()
+    -- self:setModData()
 end
 
 ---@param items InventoryItem[]
 function ZipContainer:removeItems(items)
     for _, item in pairs(items) do
+        if self.itemContainer:contains(item) then
+            return
+        end
         local type = item:getFullType()
         local id = item:getID()
         local typeTables = self.modData[type] or {}
@@ -182,7 +250,7 @@ function ZipContainer:removeItems(items)
         end
         self.modData[type] = typeTables
     end
-    self:setModData()
+    -- self:setModData()
 end
 
 ---@param items InventoryItem[]
@@ -203,17 +271,54 @@ function ZipContainer:pickUpItems(items, targetContainer)
     end
 end
 
+---@param itemType string | nil
 ---@return integer
-function ZipContainer:countItems()
+function ZipContainer:countItems(itemType)
     local count = 0
-    for _, typeTables in pairs(self.modData) do
+    for _itemType, typeTables in pairs(self.modData) do
         for _, typeTable in pairs(typeTables) do
             if typeTable then
-                count = count + 1
+                if itemType then
+                    if itemType == _itemType then
+                        count = count + 1
+                    end
+                else
+                    count = count + 1
+                end
             end
         end
     end
     return count
+end
+
+local function sortAndHash(list) -- Not actualy hash, just a tring. Cause sh1.lua works slow
+    table.sort(list)
+    local str = table.concat(list, ',')
+    return str
+    -- return utils.sha1.hex(str)
+end
+
+---@return string
+function ZipContainer:getHashOfModdata()
+    local resultList = {}
+    for _, typeTables in pairs(self.modData) do
+        for _, typeTable in pairs(typeTables) do
+            if typeTable then
+                table.insert(resultList, typeTable.id)
+            end
+        end
+    end
+    return sortAndHash(resultList)
+end
+
+function ZipContainer:getHashOfContains()
+    local resultList = {}
+    local itemsArr = self.itemContainer:getItems();
+    for i = 0, itemsArr:size()-1 do
+        local item = itemsArr:get(i);
+        table.insert(resultList, item:getID())
+    end
+    return sortAndHash(resultList)
 end
 
 return {

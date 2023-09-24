@@ -9,7 +9,7 @@ module ZipContainer
 	recipe Make ZipContainer
     {
         Nails = 10,
-        Plank = 4,
+        Plank = 10,
         keep Saw,
         keep [Recipe.GetItemTypes.Hammer],
 

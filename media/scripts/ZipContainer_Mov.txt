@@ -12,7 +12,7 @@ module ZipContainer
 		Icon			= default,
 		Weight		  	= 10,
 		DisplayName		= Zip Container,
-		WorldObjectSprite	= ZipContainer_01_0,
+		WorldObjectSprite	= ZipContainer_01_3,
 	}
 	
 }

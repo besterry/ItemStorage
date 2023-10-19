@@ -1,0 +1,10 @@
+VERSION = 1,
+
+option ZipContainer.WhiteList
+{
+	type = string,
+    default = ,
+
+	page = ZipContainer,
+	translation = ZipContainer_WhiteList,
+}

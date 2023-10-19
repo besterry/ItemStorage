@@ -27,7 +27,7 @@ end
 ---@field func function
 ---@field ticks integer
 ---@field acc any[]
----@field onTick function
+---@field onTick function | nil
 ---@field startTime number
 
 ---@type table<string, debounceEntry>

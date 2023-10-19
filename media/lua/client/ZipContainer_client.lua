@@ -2,6 +2,18 @@ local MOD_NAME = 'ZipContainer'
 local ZIP_CONTAINER_TYPE = 'ZipContainer'
 local utils = require 'ZipContainer_utils'
 
+---@type string[]
+local whiteListArr = {}
+
+Events.OnGameStart.Add(function ()
+    ---@type string
+    local whiteListStr = SandboxVars.ZipContainer.WhiteList or ''
+    if whiteListStr then
+        local str = string.gsub(whiteListStr, "%s+", "")
+        whiteListArr = luautils.split(str, ',')
+    end
+end)
+
 ---@class ItemTable
 ---@field id integer
 ---@field condition number
@@ -18,9 +30,6 @@ local utils = require 'ZipContainer_utils'
 ---@alias zipTable table<string, ItemTable[]>
 
 ---@class ZipContainer
--- -@field itemContainer ItemContainer
--- -@field isoObject IsoObject
--- -@field modData table<string, ItemTable[]>
 local ZipContainer = {}
 
 ---@param container ItemContainer
@@ -33,13 +42,18 @@ function ZipContainer:new(container)
         return
     end
 
+    
     ---@type ItemContainer
     self.itemContainer = container
+    ---@type function
+    self.base_isItemAllowed = container.isItemAllowed
     ---@type IsoObject
     self.isoObject = container:getParent()
     ---@type zipTable
-    self.modData = o.isoObject:getModData()[MOD_NAME] or {}
-    -- print('modData', bcUtils.dump(o.modData))
+    if not o.isoObject:getModData()[MOD_NAME] then
+        o.isoObject:getModData()[MOD_NAME] = {}
+    end
+    self.modData = o.isoObject:getModData()[MOD_NAME]
     return self
 end
 
@@ -47,8 +61,12 @@ function ZipContainer.isValid(container)
     return container:getType() == ZIP_CONTAINER_TYPE
 end
 
----@param containersArr ArrayList
+---@param containersArr ArrayList | nil
+---@return boolean
 function ZipContainer.isValidInArray(containersArr)
+    if not containersArr then
+        return false
+    end
     local hasZip = false
     for i = 0, containersArr:size() - 1 do
         local zipContainer = ZipContainer.isValid(containersArr:get(i))
@@ -58,6 +76,31 @@ function ZipContainer.isValidInArray(containersArr)
     end
     return hasZip
 end
+
+---@param item InventoryItem
+function ZipContainer.isWhiteListed(item)
+    for _, value in pairs(whiteListArr) do
+        if item:getFullType() == value then
+            return true
+        end
+    end
+
+    return false
+end
+
+---@param items InventoryItem[]
+function ZipContainer:removeForbiddenTypeFromItemList(items)
+    for i = #items, 1, -1
+	do
+		if not ZipContainer.isWhiteListed(items[i])
+		then
+			table.remove(items, i);
+		end
+	end
+
+	return items;
+end
+
 
 function ZipContainer:setModData()
     self.isoObject:getModData()[MOD_NAME] = self.modData
@@ -291,7 +334,7 @@ function ZipContainer:countItems(itemType)
     return count
 end
 
-local function sortAndHash(list) -- Not actualy hash, just a tring. Cause sh1.lua works slow
+local function sortAndHash(list) -- Not actualy hash, just a string. Cause sh1.lua works slow
     table.sort(list)
     local str = table.concat(list, ',')
     return str

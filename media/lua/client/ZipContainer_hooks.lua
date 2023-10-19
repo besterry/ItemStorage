@@ -2,6 +2,11 @@ local main = require 'ZipContainer_client'
 local utils = require 'ZipContainer_utils'
 local ZipContainer = main.ZipContainer
 
+local ISInventoryPaneContextMenu_base = {
+    -- onPutItems = ISInventoryPaneContextMenu.onPutItems
+    isAnyAllowed = ISInventoryPaneContextMenu.isAnyAllowed
+}
+
 local ISInventoryPane_base = {
     transferItemsByWeight = ISInventoryPane.transferItemsByWeight,
     refreshContainer = ISInventoryPane.refreshContainer,
@@ -29,10 +34,25 @@ local RecipeManager_base = {
 }
 
 local PatchPane = {}
+local PatchPaneContextMenu = {}
 local PatchPage = {}
 local PathcTA = {}
 local PatchMoveableSpriteProps = {}
 local PatchRecipeManager = {}
+
+function PatchPaneContextMenu.isAnyAllowed(container, items)
+    local zipContainer = ZipContainer:new(container)
+    if zipContainer then
+        items = ISInventoryPane.getActualItems(items)
+        for _, item in ipairs(items) do
+            if container:isItemAllowed(item) and zipContainer.isWhiteListed(item) then
+                return true
+            end
+        end
+        return false
+    end
+    return ISInventoryPaneContextMenu.isAnyAllowed(container, items)
+end
 
 --- @param recipe Recipe
 --- @param player IsoGameCharacter
@@ -176,12 +196,12 @@ local function refreshContainer(pane, page)
     local zipContainer = ZipContainer:new(container)
     local isVisible = pane.inventory == pane.lastinventory
     if pane.lastinventory and ZipContainer.isValid(pane.lastinventory) and not isVisible then
-        print('clear last')
+        -- print('clear last')
         pane.lastinventory:removeAllItems() -- очищаем прошлый контейнер если требуется
     end
     if zipContainer then
         if isCollapsed then
-            print('clear')
+            -- print('clear')
             container:removeAllItems() -- очищаем контейнер если требуется
         else
             local hash1 = zipContainer:getHashOfModdata()
@@ -189,7 +209,7 @@ local function refreshContainer(pane, page)
             -- local count = zipContainer:countItems()
             -- if container:getItems():size() ~= count then
             if hash1 ~= hash2 then --- FIXME: Работает немного медленно. Можно использовать вариант строкой выше, но это менее безопасно. Нормальный хеш посчитать не получилось.
-                print('real render')
+                -- print('real render')
                 zipContainer:makeItems() -- отрисовываем айтемы
             end
         end
@@ -198,43 +218,59 @@ end
 
 ---@param ta ISInventoryTransferAction
 local function onTransferComplete(ta)
+    local threshold = 50 -- порог тиков для дебаунса
     local item, sourceContainer, targetContainer = ta.item, ta.srcContainer, ta.destContainer
     local sourceZip = ZipContainer:new(sourceContainer)
     local targetZip = ZipContainer:new(targetContainer)
     if sourceZip then
         sourceZip:removeItems({item})
-        utils.debounce('onTransferComplete.removeItems', 50, function () -- дебаунс функция, выполнится через 50 тиков после последнего переноса элемента. Чтобы записать моддату для всех элементов сразу. Иначе тормозит
-            print('debounce.removeItems')
+        utils.debounce('onTransferComplete.removeItems', threshold, function () -- дебаунс функция, выполнится через 50 тиков после последнего переноса элемента. Чтобы записать моддату для всех элементов сразу. Иначе тормозит
+            -- print('debounce.removeItems')
             sourceZip:setModData()
         end)
     end
     if targetZip then
         targetZip:addItems({item})
-        utils.debounce('onTransferComplete.addItems', 50, function ()
-            print('debounce.addItems')
+        utils.debounce('onTransferComplete.addItems', threshold, function ()
+            -- print('debounce.addItems')
             targetZip:setModData()
         end)
     end
 end
 
 function PatchPage:clearMaxDrawHeight() -- SHOW
+    -- print('!!!clearMaxDrawHeight!!!')
     refreshContainer(self.inventoryPane, self)
     return ISInventoryPage_base.clearMaxDrawHeight(self)
 end
 function PatchPage:setMaxDrawHeight(height) -- HIDE
+    -- print('!!!setMaxDrawHeight!!!')
     refreshContainer(self.inventoryPane, self)
     return ISInventoryPage_base.setMaxDrawHeight(self, height)
 end
 
 function PatchPage:selectContainer(button)
+    -- print('!!!selectContainer!!!')
     refreshContainer(self.inventoryPane, self)
     return ISInventoryPage_base.selectContainer(self, button)
 end
 
 function PatchPane:refreshContainer()
+    -- print('!!!refreshContainer!!!')
     refreshContainer(self, self.inventoryPage)
     return ISInventoryPane_base.refreshContainer(self)
 end
+
+---@param items InventoryItem[]
+---@param container ItemContainer
+function PatchPane:transferItemsByWeight(items, container)
+    local zipContainer = ZipContainer:new(container)
+    if zipContainer then
+        zipContainer:removeForbiddenTypeFromItemList(items)
+    end
+    return ISInventoryPane_base.transferItemsByWeight(self, items, container)
+end
+
 
 ---@param item InventoryItem
 function PathcTA:transferItem(item)
@@ -244,8 +280,11 @@ function PathcTA:transferItem(item)
 end
 
 local makeHooks = function ()
-    print('makeHooks')
+    print('Zip Container: make hooks')
     ISInventoryPane.refreshContainer = PatchPane.refreshContainer
+    ISInventoryPane.transferItemsByWeight = PatchPane.transferItemsByWeight
+
+    ISInventoryPaneContextMenu.isAnyAllowed = PatchPaneContextMenu.isAnyAllowed
 
     ISInventoryPage.selectContainer = PatchPage.selectContainer
     ISInventoryPage.setMaxDrawHeight = PatchPage.setMaxDrawHeight
@@ -260,8 +299,11 @@ local makeHooks = function ()
     RecipeManager.getNumberOfTimesRecipeCanBeDone = PatchRecipeManager.getNumberOfTimesRecipeCanBeDone
 end
 local removeHooks = function ()
-    print('removeHooks')
+    print('Zip Container: remove hooks')
     ISInventoryPane.refreshContainer = ISInventoryPane_base.refreshContainer
+    ISInventoryPane.transferItemsByWeight = ISInventoryPane_base.transferItemsByWeight
+
+    ISInventoryPaneContextMenu.isAnyAllowed = ISInventoryPaneContextMenu_base.isAnyAllowed
 
     ISInventoryPage.selectContainer = ISInventoryPage_base.selectContainer
     ISInventoryPage.setMaxDrawHeight = ISInventoryPage_base.setMaxDrawHeight
@@ -288,6 +330,5 @@ end
 Events.OnGameStart.Add(makeHooks)
 
 -- TODO: 
---1. добавить логирование. Пока непонятно как это сделать
---2. брать предметы из ящика при крафте
---4. запретить складывать сложные предметы. Разобраться какие предметы сложные
+--1. добавить логирование
+--2. брать предметы из ящика при крафте WIP

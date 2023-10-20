@@ -1,5 +1,6 @@
 local MOD_NAME = 'ZipContainer'
-local ZIP_CONTAINER_TYPE = 'ZipContainer'
+local ZIP_CONTAINER_TYPE = MOD_NAME
+local TILE_NAME_START = ZIP_CONTAINER_TYPE
 local utils = require 'ZipContainer_utils'
 
 ---@return string[]
@@ -78,8 +79,9 @@ function ZipContainer.isValidInArray(containersArr)
 end
 
 ---@param item InventoryItem
----@param whiteList string[]
+---@param whiteList? string[]
 function ZipContainer.isWhiteListed(item, whiteList)
+    whiteList = whiteList or getWhiteListArr()
     for _, value in pairs(whiteList) do
         if item:getFullType() == value then
             return true
@@ -398,5 +400,6 @@ function ZipContainer:makeLog(items, tag)
 end
 
 return {
-    ZipContainer = ZipContainer
+    ZipContainer = ZipContainer,
+    TILE_NAME_START = TILE_NAME_START
 }

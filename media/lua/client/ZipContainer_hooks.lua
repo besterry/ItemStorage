@@ -34,14 +34,46 @@ local RecipeManager_base = {
     getNumberOfTimesRecipeCanBeDone = RecipeManager.getNumberOfTimesRecipeCanBeDone
 }
 
-local PatchPane = {}
-local PatchPaneContextMenu = {}
-local PatchPage = {}
-local PathcTA = {}
-local PatchMoveableSpriteProps = {}
-local PatchRecipeManager = {}
+local ISDestroyStuffAction_base = {
+    isValid = ISDestroyStuffAction.isValid
+}
 
-function PatchPaneContextMenu.isAnyAllowed(container, items)
+local ISInventoryPane_patch = {}
+local ISInventoryPaneContextMenu_patch = {}
+local ISInventoryPage_patch = {}
+local ISInventoryTransferAction_patch = {}
+local ISMoveableSpriteProps_patch = {}
+local RecipeManager_patch = {}
+local ISDestroyStuffAction_patch = {}
+
+---@param object IsoThumpable
+local function isZipTile(object)
+    local objectName = object:getSprite():getName()
+    return luautils.stringStarts(objectName, main.TILE_NAME_START)
+end
+
+---@param object IsoThumpable
+local function isEmpty(object)
+    for i=1, object:getContainerCount() do
+        local container = object:getContainerByIndex(i-1)
+        local zipContainer = ZipContainer:new(container)
+        if container and zipContainer and zipContainer:countItems() == 0 then
+            return true
+        end
+    end
+end
+
+function ISDestroyStuffAction_patch:isValid()
+    local o = ISDestroyStuffAction_base.isValid(self)
+    local object = self.item
+    if isZipTile(object) and not isEmpty(object) then
+        self.character:Say('Container is not empty')
+        return false
+    end
+    return o
+end
+
+function ISInventoryPaneContextMenu_patch.isAnyAllowed(container, items)
     local zipContainer = ZipContainer:new(container)
     if zipContainer then
         items = ISInventoryPane.getActualItems(items)
@@ -60,7 +92,7 @@ end
 --- @param containersArr ArrayList
 --- @param item InventoryItem
 --- @return int
-function PatchRecipeManager.getNumberOfTimesRecipeCanBeDone(recipe, player, containersArr, item)
+function RecipeManager_patch.getNumberOfTimesRecipeCanBeDone(recipe, player, containersArr, item)
     local o = RecipeManager_base.getNumberOfTimesRecipeCanBeDone(recipe, player, containersArr, item)
     if not ZipContainer.isValidInArray(containersArr) then
         return o
@@ -125,7 +157,7 @@ end
 --- @param item InventoryItem
 --- @param containersArr ArrayList
 --- @return boolean
-function PatchRecipeManager.IsRecipeValid(recipe, player, item, containersArr)
+function RecipeManager_patch.IsRecipeValid(recipe, player, item, containersArr)
     local o = RecipeManager_base.IsRecipeValid(recipe, player, item, containersArr)
     if not ZipContainer.isValidInArray(containersArr) or o then
         return o
@@ -163,7 +195,7 @@ end
 --- @param selectedItem InventoryItem
 --- @param ignoreItems ArrayList
 --- @return ArrayList
-function PatchRecipeManager.getAvailableItemsAll(recipe, player, containersArr, selectedItem, ignoreItems)
+function RecipeManager_patch.getAvailableItemsAll(recipe, player, containersArr, selectedItem, ignoreItems)
     local o = RecipeManager_base.getAvailableItemsAll(recipe, player, containersArr, selectedItem, ignoreItems)
     for i = 0, containersArr:size() - 1 do
         local zipContainer = ZipContainer:new(containersArr:get(i))
@@ -177,13 +209,10 @@ function PatchRecipeManager.getAvailableItemsAll(recipe, player, containersArr, 
     return o
 end
 
-function PatchMoveableSpriteProps:objectNoContainerOrEmpty(object) -- NOTE: Запрещаем поднимать зип контейнер если он не пустой
-    for i=1, object:getContainerCount() do
-        local container = object:getContainerByIndex(i-1)
-        local zipContainer = ZipContainer:new(container)
-        if container and zipContainer and zipContainer:countItems() > 0 then
-            return false
-        end
+---@param object IsoThumpable
+function ISMoveableSpriteProps_patch:objectNoContainerOrEmpty(object) -- NOTE: Запрещаем поднимать зип контейнер если он не пустой
+    if isZipTile(object) and not isEmpty(object) then
+        return false
     end
     return ISMoveableSpriteProps_base.objectNoContainerOrEmpty(self, object)
 end
@@ -239,24 +268,24 @@ local function onTransferComplete(ta)
     end
 end
 
-function PatchPage:clearMaxDrawHeight() -- SHOW
+function ISInventoryPage_patch:clearMaxDrawHeight() -- SHOW
     -- print('!!!clearMaxDrawHeight!!!')
     refreshContainer(self.inventoryPane, self)
     return ISInventoryPage_base.clearMaxDrawHeight(self)
 end
-function PatchPage:setMaxDrawHeight(height) -- HIDE
+function ISInventoryPage_patch:setMaxDrawHeight(height) -- HIDE
     -- print('!!!setMaxDrawHeight!!!')
     refreshContainer(self.inventoryPane, self)
     return ISInventoryPage_base.setMaxDrawHeight(self, height)
 end
 
-function PatchPage:selectContainer(button)
+function ISInventoryPage_patch:selectContainer(button)
     -- print('!!!selectContainer!!!')
     refreshContainer(self.inventoryPane, self)
     return ISInventoryPage_base.selectContainer(self, button)
 end
 
-function PatchPane:refreshContainer()
+function ISInventoryPane_patch:refreshContainer()
     -- print('!!!refreshContainer!!!')
     refreshContainer(self, self.inventoryPage)
     return ISInventoryPane_base.refreshContainer(self)
@@ -264,7 +293,7 @@ end
 
 ---@param items InventoryItem[]
 ---@param container ItemContainer
-function PatchPane:transferItemsByWeight(items, container)
+function ISInventoryPane_patch:transferItemsByWeight(items, container)
     local zipContainer = ZipContainer:new(container)
     if zipContainer then
         zipContainer:removeForbiddenTypeFromItemList(items)
@@ -274,13 +303,13 @@ end
 
 
 ---@param item InventoryItem
-function PathcTA:transferItem(item)
+function ISInventoryTransferAction_patch:transferItem(item)
     local o = ISInventoryTransferAction_base.transferItem(self, item)
     onTransferComplete(self)
     return o
 end
 
-function PathcTA:isValid()
+function ISInventoryTransferAction_patch:isValid()
     local zipContainer = ZipContainer:new(self.destContainer)
     if zipContainer then
         local o_getServerOptions = getServerOptions
@@ -303,23 +332,25 @@ end
 
 local makeHooks = function ()
     print('Zip Container: make hooks')
-    ISInventoryPane.refreshContainer = PatchPane.refreshContainer
-    ISInventoryPane.transferItemsByWeight = PatchPane.transferItemsByWeight
+    ISInventoryPane.refreshContainer = ISInventoryPane_patch.refreshContainer
+    ISInventoryPane.transferItemsByWeight = ISInventoryPane_patch.transferItemsByWeight
 
-    ISInventoryPaneContextMenu.isAnyAllowed = PatchPaneContextMenu.isAnyAllowed
+    ISInventoryPaneContextMenu.isAnyAllowed = ISInventoryPaneContextMenu_patch.isAnyAllowed
 
-    ISInventoryPage.selectContainer = PatchPage.selectContainer
-    ISInventoryPage.setMaxDrawHeight = PatchPage.setMaxDrawHeight
-    ISInventoryPage.clearMaxDrawHeight = PatchPage.clearMaxDrawHeight
+    ISInventoryPage.selectContainer = ISInventoryPage_patch.selectContainer
+    ISInventoryPage.setMaxDrawHeight = ISInventoryPage_patch.setMaxDrawHeight
+    ISInventoryPage.clearMaxDrawHeight = ISInventoryPage_patch.clearMaxDrawHeight
 
-    ISInventoryTransferAction.transferItem = PathcTA.transferItem
-    ISInventoryTransferAction.isValid = PathcTA.isValid
+    ISInventoryTransferAction.transferItem = ISInventoryTransferAction_patch.transferItem
+    ISInventoryTransferAction.isValid = ISInventoryTransferAction_patch.isValid
 
-    ISMoveableSpriteProps.objectNoContainerOrEmpty = PatchMoveableSpriteProps.objectNoContainerOrEmpty
+    ISMoveableSpriteProps.objectNoContainerOrEmpty = ISMoveableSpriteProps_patch.objectNoContainerOrEmpty
 
-    RecipeManager.getAvailableItemsAll = PatchRecipeManager.getAvailableItemsAll
-    RecipeManager.IsRecipeValid = PatchRecipeManager.IsRecipeValid
-    RecipeManager.getNumberOfTimesRecipeCanBeDone = PatchRecipeManager.getNumberOfTimesRecipeCanBeDone
+    ISDestroyStuffAction.isValid = ISDestroyStuffAction_patch.isValid
+
+    RecipeManager.getAvailableItemsAll = RecipeManager_patch.getAvailableItemsAll
+    -- RecipeManager.IsRecipeValid = RecipeManager_patch.IsRecipeValid
+    -- RecipeManager.getNumberOfTimesRecipeCanBeDone = RecipeManager_patch.getNumberOfTimesRecipeCanBeDone
 end
 local removeHooks = function ()
     print('Zip Container: remove hooks')
@@ -337,9 +368,11 @@ local removeHooks = function ()
 
     ISMoveableSpriteProps.objectNoContainerOrEmpty = ISMoveableSpriteProps_base.objectNoContainerOrEmpty
 
+    ISDestroyStuffAction.isValid = ISDestroyStuffAction_base.isValid
+
     RecipeManager.getAvailableItemsAll = RecipeManager_base.getAvailableItemsAll
-    RecipeManager.IsRecipeValid = RecipeManager_base.IsRecipeValid
-    RecipeManager.getNumberOfTimesRecipeCanBeDone = RecipeManager_base.getNumberOfTimesRecipeCanBeDone
+    -- RecipeManager.IsRecipeValid = RecipeManager_base.IsRecipeValid
+    -- RecipeManager.getNumberOfTimesRecipeCanBeDone = RecipeManager_base.getNumberOfTimesRecipeCanBeDone
 end
 
 -- GmakeHooks = makeHooks -- TODO: дебаг переменная. Удалить

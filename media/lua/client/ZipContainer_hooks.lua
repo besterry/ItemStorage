@@ -219,23 +219,23 @@ end
 
 ---@param ta ISInventoryTransferAction
 local function onTransferComplete(ta)
-    local threshold = 50 -- порог тиков для дебаунса
+    local threshold = 50 -- порог тиков для дебаунса (таймаут)
     local item, sourceContainer, targetContainer = ta.item, ta.srcContainer, ta.destContainer
     local sourceZip = ZipContainer:new(sourceContainer)
     local targetZip = ZipContainer:new(targetContainer)
     if sourceZip then
         sourceZip:removeItems({item})
-        utils.debounce('onTransferComplete.removeItems', threshold, function () -- дебаунс функция, выполнится через 50 тиков после последнего переноса элемента. Чтобы записать моддату для всех элементов сразу. Иначе тормозит
-            -- print('debounce.removeItems')
+        utils.debounce('onTransferComplete.removeItems', threshold, function (_, acc) -- дебаунс функция, выполнится через 50 тиков после последнего переноса элемента. Чтобы записать моддату для всех элементов сразу. Иначе тормозит
             sourceZip:setModData()
-        end)
+            sourceZip:makeLog(acc, 'GET')
+        end, item)
     end
     if targetZip then
         targetZip:addItems({item})
-        utils.debounce('onTransferComplete.addItems', threshold, function ()
-            -- print('debounce.addItems')
+        utils.debounce('onTransferComplete.addItems', threshold, function (_, acc)
             targetZip:setModData()
-        end)
+            targetZip:makeLog(acc, 'PUT')
+        end, item)
     end
 end
 

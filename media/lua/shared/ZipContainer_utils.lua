@@ -61,7 +61,7 @@ local debounceFn = function (name, delay, func, args)
             ticks = ticks + 1;
             debounceDict[name].ticks = ticks
         else
-            print('time: ', os.time() - debounceDict[name].startTime)
+            print('Zip Container debounce time: ', os.time() - debounceDict[name].startTime)
             debounceDict[name].func(args, debounceDict[name].acc)
             Events.OnTick.Remove(debounceDict[name].onTick);
             debounceDict[name] = nil

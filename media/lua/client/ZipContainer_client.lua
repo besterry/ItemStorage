@@ -366,6 +366,37 @@ function ZipContainer:getHashOfContains()
     return sortAndHash(resultList)
 end
 
+---@param items InventoryItem[]
+---@return string
+local getItemsCountStr = function (items)
+    local resultTable = {}
+    for _, item in pairs(items) do
+        local type = item:getFullType()
+        if resultTable[type] then
+            resultTable[type] = resultTable[type] + 1
+        else
+            resultTable[type] = 1
+        end
+    end
+    local result = ''
+    for type, count in pairs(resultTable) do
+        result = result .. ('%s=%s; '):format(type, count)
+    end
+    return result
+end
+
+---@param items InventoryItem[]
+---@param tag string
+function ZipContainer:makeLog(items, tag)
+    if not LogExtenderClient or not LogExtenderClient.writeLog then return; end
+    local fileName = 'ZipContainer'
+    -- local dateTimeStr = os.date('%d.%m.%Y %H:%M:%S')
+    local username = getPlayer():getUsername()
+    local itemsStr = getItemsCountStr(items)
+    local msg = ('[%s]:[%s]: %s'):format(username, tag, itemsStr)
+    LogExtenderClient.writeLog(fileName, msg)
+end
+
 return {
     ZipContainer = ZipContainer
 }

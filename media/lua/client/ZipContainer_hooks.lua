@@ -19,7 +19,8 @@ local ISInventoryPage_base = {
 local ISInventoryTransferAction_base = {
     new = ISInventoryTransferAction.new,
     perform = ISInventoryTransferAction.perform,
-    transferItem = ISInventoryTransferAction.transferItem
+    transferItem = ISInventoryTransferAction.transferItem,
+    isValid = ISInventoryTransferAction.isValid
 }
 
 local ISMoveableSpriteProps_base = {
@@ -279,6 +280,27 @@ function PathcTA:transferItem(item)
     return o
 end
 
+function PathcTA:isValid()
+    local zipContainer = ZipContainer:new(self.destContainer)
+    if zipContainer then
+        local o_getServerOptions = getServerOptions
+        getServerOptions = function()
+            return {
+                ['getInteger'] = function (this, key)
+                    if key == 'ItemNumbersLimitPerContainer' then
+                        return 0
+                    end
+                    return o_getServerOptions().getInteger(this, key)
+                end
+            }
+        end
+        local p_result = ISInventoryTransferAction_base.isValid(self)
+        getServerOptions = o_getServerOptions
+        return p_result
+    end
+    return ISInventoryTransferAction_base.isValid(self)
+end
+
 local makeHooks = function ()
     print('Zip Container: make hooks')
     ISInventoryPane.refreshContainer = PatchPane.refreshContainer
@@ -291,6 +313,7 @@ local makeHooks = function ()
     ISInventoryPage.clearMaxDrawHeight = PatchPage.clearMaxDrawHeight
 
     ISInventoryTransferAction.transferItem = PathcTA.transferItem
+    ISInventoryTransferAction.isValid = PathcTA.isValid
 
     ISMoveableSpriteProps.objectNoContainerOrEmpty = PatchMoveableSpriteProps.objectNoContainerOrEmpty
 
@@ -310,6 +333,7 @@ local removeHooks = function ()
     ISInventoryPage.clearMaxDrawHeight = ISInventoryPage_base.clearMaxDrawHeight
 
     ISInventoryTransferAction.transferItem = ISInventoryTransferAction_base.transferItem
+    ISInventoryTransferAction.isValid = ISInventoryTransferAction_base.isValid
 
     ISMoveableSpriteProps.objectNoContainerOrEmpty = ISMoveableSpriteProps_base.objectNoContainerOrEmpty
 
@@ -318,8 +342,8 @@ local removeHooks = function ()
     RecipeManager.getNumberOfTimesRecipeCanBeDone = RecipeManager_base.getNumberOfTimesRecipeCanBeDone
 end
 
-GmakeHooks = makeHooks -- TODO: дебаг переменная. Удалить
-GremoveHooks = removeHooks
+-- GmakeHooks = makeHooks -- TODO: дебаг переменная. Удалить
+-- GremoveHooks = removeHooks
 
 if AUD then
     AUD.setButton(1, "Add hooks", makeHooks)

@@ -2,17 +2,16 @@ local MOD_NAME = 'ZipContainer'
 local ZIP_CONTAINER_TYPE = 'ZipContainer'
 local utils = require 'ZipContainer_utils'
 
----@type string[]
-local whiteListArr = {}
-
-Events.OnGameStart.Add(function ()
+---@return string[]
+local function getWhiteListArr ()
     ---@type string
     local whiteListStr = SandboxVars.ZipContainer.WhiteList or ''
     if whiteListStr then
         local str = string.gsub(whiteListStr, "%s+", "")
-        whiteListArr = luautils.split(str, ',')
+        return luautils.split(str, ',')
     end
-end)
+    return {}
+end
 
 ---@class ItemTable
 ---@field id integer
@@ -57,6 +56,7 @@ function ZipContainer:new(container)
     return self
 end
 
+---@param container ItemContainer
 function ZipContainer.isValid(container)
     return container:getType() == ZIP_CONTAINER_TYPE
 end
@@ -78,8 +78,9 @@ function ZipContainer.isValidInArray(containersArr)
 end
 
 ---@param item InventoryItem
-function ZipContainer.isWhiteListed(item)
-    for _, value in pairs(whiteListArr) do
+---@param whiteList string[]
+function ZipContainer.isWhiteListed(item, whiteList)
+    for _, value in pairs(whiteList) do
         if item:getFullType() == value then
             return true
         end
@@ -90,9 +91,10 @@ end
 
 ---@param items InventoryItem[]
 function ZipContainer:removeForbiddenTypeFromItemList(items)
+    local whiteList = getWhiteListArr()
     for i = #items, 1, -1
 	do
-		if not ZipContainer.isWhiteListed(items[i])
+		if not ZipContainer.isWhiteListed(items[i], whiteList)
 		then
 			table.remove(items, i);
 		end

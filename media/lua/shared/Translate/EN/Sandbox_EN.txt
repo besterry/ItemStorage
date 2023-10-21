@@ -1,0 +1,6 @@
+Sandbox_RU = {
+	Sandbox_ZipContainer = "Zip-Container",
+
+	Sandbox_ZipContainer_WhiteList = "Allowed items",
+	Sandbox_ZipContainer_WhiteList_tooltip = "List of types separated by commas, for example: Base.Nails, Base.Plank, ...",
+}

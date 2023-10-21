@@ -1,0 +1,3 @@
+IGUI_EN = {
+	IGUI_Container_not_empty = "Container is notempty",
+}

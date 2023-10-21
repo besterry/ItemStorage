@@ -67,7 +67,7 @@ function ISDestroyStuffAction_patch:isValid()
     local o = ISDestroyStuffAction_base.isValid(self)
     local object = self.item
     if isZipTile(object) and not isEmpty(object) then
-        self.character:Say('Container is not empty')
+        self.character:Say(getText('IGUI_Container_not_empty'))
         return false
     end
     return o

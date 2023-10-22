@@ -4,22 +4,28 @@ module ZipContainer
     {
         Base
     }
-	
-/**********************************************************************/	
-	recipe Make ZipContainer
+
+    recipe Make ZipContainer
     {
-        Nails = 10,
-        Plank = 10,
-        keep Saw,
-        keep [Recipe.GetItemTypes.Hammer],
-
-        Sound:Sawing,
-        AnimNode:SawLog,
-        Result:ZipContainer,
-        Prop1:Source=3,
-        Prop2:Source=2,
-        Time:100.0,
+	    HCStonepilebox=4,
+    	HCWoodenbucketconcrete/HCMortar=2,
+	    HCWoodbeam=4,
+	    HCLumberstack,
+	    MetalBar=4,
+        Doorknob,
+	    Hinge=2,
+	    Nails=18,
+    	keep Hammer,
+	    keep Saw,
+    	keep HCMasontrowel,
+        keep Shovel/Shovel2,
+    	CanBeDoneFromFloor:true,
+   	    Result:ZipContainer,
+	    SkillRequired:Woodwork=6,
+    	Sound:PZ_Hammer,
+    	NeedToBeLearn:false,
+    	Time:5000,
+    	Category:Stoneworking,
+    	OnGiveXP:HCHunger_OnGiveXP,
     }
-/**********************************************************************/		
-
 }

@@ -2,6 +2,8 @@ local main = require 'ZipContainer_client'
 local utils = require 'ZipContainer_utils'
 local ZipContainer = main.ZipContainer
 
+local hasZipNear = false
+
 local ISInventoryPaneContextMenu_base = {
     -- onPutItems = ISInventoryPaneContextMenu.onPutItems
     isAnyAllowed = ISInventoryPaneContextMenu.isAnyAllowed
@@ -10,6 +12,7 @@ local ISInventoryPaneContextMenu_base = {
 local ISInventoryPane_base = {
     transferItemsByWeight = ISInventoryPane.transferItemsByWeight,
     refreshContainer = ISInventoryPane.refreshContainer,
+    renderdetails = ISInventoryPane.renderdetails
 }
 local ISInventoryPage_base = {
     selectContainer = ISInventoryPage.selectContainer,
@@ -62,6 +65,7 @@ local function isEmpty(object)
         end
     end
 end
+
 
 function ISDestroyStuffAction_patch:isValid()
     local o = ISDestroyStuffAction_base.isValid(self)
@@ -234,11 +238,13 @@ local function refreshContainer(pane, page)
     if pane.lastinventory and ZipContainer.isValid(pane.lastinventory) and not isVisible then
         -- print('clear last')
         pane.lastinventory:removeAllItems() -- очищаем прошлый контейнер если требуется
+        hasZipNear = false
     end
     if zipContainer then
         if isCollapsed then
             -- print('clear')
             container:removeAllItems() -- очищаем контейнер если требуется
+            hasZipNear = false
         else
             local hash1 = zipContainer:getHashOfModdata()
             local hash2 = zipContainer:getHashOfContains()
@@ -247,6 +253,7 @@ local function refreshContainer(pane, page)
             if hash1 ~= hash2 then --- FIXME: Работает немного медленно. Можно использовать вариант строкой выше, но это менее безопасно. Нормальный хеш посчитать не получилось.
                 -- print('real render')
                 zipContainer:makeItems() -- отрисовываем айтемы
+                hasZipNear = true
             end
         end
     end
@@ -289,6 +296,36 @@ function ISInventoryPage_patch:selectContainer(button)
     -- print('!!!selectContainer!!!')
     refreshContainer(self.inventoryPane, self)
     return ISInventoryPage_base.selectContainer(self, button)
+end
+
+
+function ISInventoryPane_patch:renderdetails(doDragged)
+    local o = ISInventoryPane_base.renderdetails(self, doDragged)
+    local y = 0;
+    local textDY = (self.itemHgt - self.fontHgt) / 2
+    local whiteList = main.getWhiteListArr()
+    for _, group in ipairs(self.itemslist) do
+        local count = 1;
+        for _, item in ipairs(group.items) do
+            local xoff = 0;
+            local yoff = 0;
+            local itemName = item:getName();
+            -- hasZipNear
+            if count == 1 and not ZipContainer.isValid(self.inventory) and ZipContainer.isWhiteListed(item, whiteList) then
+                -- self:drawRect(1+xoff, (y*self.itemHgt)+self.headerHgt+yoff, self:getWidth()-1, self.itemHgt, 0.1, 1.0, 1.0, 0.0); -- Желтый фон
+                self:drawText(itemName, self.column2+8+xoff, (y*self.itemHgt)+self.headerHgt+textDY+yoff, 0.7, 0.7, 0.1, 0.5, self.font);
+            end
+            y = y + 1
+            if count == ISInventoryPane.MAX_ITEMS_IN_STACK_TO_RENDER + 1 then
+                break
+            end
+            if count == 1 and self.collapsed ~= nil and group.name ~= nil and self.collapsed[group.name] then
+                break
+            end
+            count = count + 1
+        end
+    end
+    return o
 end
 
 function ISInventoryPane_patch:refreshContainer()
@@ -340,6 +377,7 @@ local makeHooks = function ()
     print('Zip Container: make hooks')
     ISInventoryPane.refreshContainer = ISInventoryPane_patch.refreshContainer
     ISInventoryPane.transferItemsByWeight = ISInventoryPane_patch.transferItemsByWeight
+    ISInventoryPane.renderdetails = ISInventoryPane_patch.renderdetails
 
     ISInventoryPaneContextMenu.isAnyAllowed = ISInventoryPaneContextMenu_patch.isAnyAllowed
 
@@ -362,6 +400,7 @@ local removeHooks = function ()
     print('Zip Container: remove hooks')
     ISInventoryPane.refreshContainer = ISInventoryPane_base.refreshContainer
     ISInventoryPane.transferItemsByWeight = ISInventoryPane_base.transferItemsByWeight
+    ISInventoryPane.renderdetails = ISInventoryPane_base.renderdetails
 
     ISInventoryPaneContextMenu.isAnyAllowed = ISInventoryPaneContextMenu_base.isAnyAllowed
 

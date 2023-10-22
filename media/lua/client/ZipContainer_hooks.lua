@@ -74,15 +74,21 @@ function ISDestroyStuffAction_patch:isValid()
 end
 
 function ISInventoryPaneContextMenu_patch.isAnyAllowed(container, items)
-    local zipContainer = ZipContainer:new(container)
-    if zipContainer then
+    -- local zipContainer = ZipContainer:new(container)
+    local whiteList = main.getWhiteListArr()
+    if ZipContainer.isValid(container) then
+        local result = nil
         items = ISInventoryPane.getActualItems(items)
         for _, item in ipairs(items) do
-            if container:isItemAllowed(item) and zipContainer.isWhiteListed(item) then
-                return true
+            if container:isItemAllowed(item) and ZipContainer.isWhiteListed(item, whiteList) then
+                if result == nil then
+                    result = true
+                end
+            else
+                result = false
             end
         end
-        return false
+        return result
     end
     return ISInventoryPaneContextMenu.isAnyAllowed(container, items)
 end

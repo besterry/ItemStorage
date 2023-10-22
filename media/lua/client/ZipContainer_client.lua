@@ -42,17 +42,18 @@ function ZipContainer:new(container)
         return
     end
 
-    
+    -- ---@type string[]
+    -- self.whiteList = getWhiteListArr()
     ---@type ItemContainer
     self.itemContainer = container
     ---@type function
     self.base_isItemAllowed = container.isItemAllowed
     ---@type IsoObject
     self.isoObject = container:getParent()
-    ---@type zipTable
     if not o.isoObject:getModData()[MOD_NAME] then
         o.isoObject:getModData()[MOD_NAME] = {}
     end
+    ---@type zipTable
     self.modData = o.isoObject:getModData()[MOD_NAME]
     return self
 end
@@ -401,5 +402,6 @@ end
 
 return {
     ZipContainer = ZipContainer,
-    TILE_NAME_START = TILE_NAME_START
+    TILE_NAME_START = TILE_NAME_START,
+    getWhiteListArr = getWhiteListArr,
 }

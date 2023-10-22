@@ -75,8 +75,8 @@ end
 
 function ISInventoryPaneContextMenu_patch.isAnyAllowed(container, items)
     -- local zipContainer = ZipContainer:new(container)
-    local whiteList = main.getWhiteListArr()
     if ZipContainer.isValid(container) then
+        local whiteList = main.getWhiteListArr()
         local result = nil
         items = ISInventoryPane.getActualItems(items)
         for _, item in ipairs(items) do
@@ -90,7 +90,7 @@ function ISInventoryPaneContextMenu_patch.isAnyAllowed(container, items)
         end
         return result
     end
-    return ISInventoryPaneContextMenu.isAnyAllowed(container, items)
+    return ISInventoryPaneContextMenu_base.isAnyAllowed(container, items)
 end
 
 --- @param recipe Recipe
@@ -393,5 +393,4 @@ end
 Events.OnGameStart.Add(makeHooks)
 
 -- TODO: 
---1. добавить логирование
---2. брать предметы из ящика при крафте WIP
+--1. брать предметы из ящика при крафте WIP

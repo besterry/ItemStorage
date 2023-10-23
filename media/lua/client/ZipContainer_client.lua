@@ -3,16 +3,7 @@ local ZIP_CONTAINER_TYPE = MOD_NAME
 local TILE_NAME_START = ZIP_CONTAINER_TYPE
 local utils = require 'ZipContainer_utils'
 
----@return string[]
-local function getWhiteListArr ()
-    ---@type string
-    local whiteListStr = SandboxVars.ZipContainer.WhiteList or ''
-    if whiteListStr then
-        local str = string.gsub(whiteListStr, "%s+", "")
-        return luautils.split(str, ',')
-    end
-    return {}
-end
+
 
 ---@class ItemTable
 ---@field id integer
@@ -82,19 +73,13 @@ end
 ---@param item InventoryItem
 ---@param whiteList? string[]
 function ZipContainer.isWhiteListed(item, whiteList)
-    whiteList = whiteList or getWhiteListArr()
-    for _, value in pairs(whiteList) do
-        if item:getFullType() == value then
-            return true
-        end
-    end
-
-    return false
+    whiteList = whiteList or utils.getWhiteListArr()
+    return whiteList[item:getFullType()] or false
 end
 
 ---@param items InventoryItem[]
 function ZipContainer:removeForbiddenTypeFromItemList(items)
-    local whiteList = getWhiteListArr()
+    local whiteList = utils.getWhiteListArr()
     for i = #items, 1, -1
 	do
 		if not ZipContainer.isWhiteListed(items[i], whiteList)
@@ -402,6 +387,5 @@ end
 
 return {
     ZipContainer = ZipContainer,
-    TILE_NAME_START = TILE_NAME_START,
-    getWhiteListArr = getWhiteListArr,
+    TILE_NAME_START = TILE_NAME_START
 }

@@ -80,7 +80,7 @@ end
 function ISInventoryPaneContextMenu_patch.isAnyAllowed(container, items)
     -- local zipContainer = ZipContainer:new(container)
     if ZipContainer.isValid(container) then
-        local whiteList = main.getWhiteListArr()
+        local whiteList = utils.getWhiteListArr()
         local result = nil
         items = ISInventoryPane.getActualItems(items)
         for _, item in ipairs(items) do
@@ -303,7 +303,7 @@ function ISInventoryPane_patch:renderdetails(doDragged)
     local o = ISInventoryPane_base.renderdetails(self, doDragged)
     local y = 0;
     local textDY = (self.itemHgt - self.fontHgt) / 2
-    local whiteList = main.getWhiteListArr()
+    local whiteList = utils.getWhiteListArr()
     for _, group in ipairs(self.itemslist) do
         local count = 1;
         for _, item in ipairs(group.items) do

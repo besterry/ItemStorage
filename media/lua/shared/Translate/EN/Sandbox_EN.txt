@@ -3,4 +3,6 @@ Sandbox_RU = {
 
 	Sandbox_ZipContainer_WhiteList = "Allowed items",
 	Sandbox_ZipContainer_WhiteList_tooltip = "List of types separated by commas, for example: Base.Nails, Base.Plank, ...",
+	Sandbox_ZipContainer_WhiteListJsonFileName = "White list JSON filename",
+	Sandbox_ZipContainer_WhiteListJsonFileName_tooltip = "It works simultaneously with the sandbox option and has the format: [\"Base.Glue\", \"Base.Woodglue\"]",
 }

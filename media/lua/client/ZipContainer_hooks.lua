@@ -80,11 +80,10 @@ end
 function ISInventoryPaneContextMenu_patch.isAnyAllowed(container, items)
     -- local zipContainer = ZipContainer:new(container)
     if ZipContainer.isValid(container) then
-        local whiteList = utils.getWhiteListArr()
         local result = nil
         items = ISInventoryPane.getActualItems(items)
         for _, item in ipairs(items) do
-            if container:isItemAllowed(item) and ZipContainer.isWhiteListed(item, whiteList) then
+            if container:isItemAllowed(item) and ZipContainer.isWhiteListed(item) then
                 if result == nil then
                     result = true
                 end
@@ -303,7 +302,6 @@ function ISInventoryPane_patch:renderdetails(doDragged)
     local o = ISInventoryPane_base.renderdetails(self, doDragged)
     local y = 0;
     local textDY = (self.itemHgt - self.fontHgt) / 2
-    local whiteList = utils.getWhiteListArr()
     for _, group in ipairs(self.itemslist) do
         local count = 1;
         for _, item in ipairs(group.items) do
@@ -311,7 +309,7 @@ function ISInventoryPane_patch:renderdetails(doDragged)
             local yoff = 0;
             local itemName = item:getName();
             -- hasZipNear
-            if count == 1 and not ZipContainer.isValid(self.inventory) and ZipContainer.isWhiteListed(item, whiteList) then
+            if count == 1 and not ZipContainer.isValid(self.inventory) and ZipContainer.isWhiteListed(item) then
                 -- self:drawRect(1+xoff, (y*self.itemHgt)+self.headerHgt+yoff, self:getWidth()-1, self.itemHgt, 0.1, 1.0, 1.0, 0.0); -- Желтый фон
                 self:drawText(itemName, self.column2+8+xoff, (y*self.itemHgt)+self.headerHgt+textDY+yoff, 0.7, 0.7, 0.1, 0.5, self.font);
             end
@@ -393,6 +391,8 @@ local makeHooks = function ()
     ISDestroyStuffAction.isValid = ISDestroyStuffAction_patch.isValid
 
     RecipeManager.getAvailableItemsAll = RecipeManager_patch.getAvailableItemsAll
+
+    sendClientCommand(getPlayer(), main.MOD_NAME, 'getWhiteList', {})
     -- RecipeManager.IsRecipeValid = RecipeManager_patch.IsRecipeValid
     -- RecipeManager.getNumberOfTimesRecipeCanBeDone = RecipeManager_patch.getNumberOfTimesRecipeCanBeDone
 end
@@ -416,6 +416,10 @@ local removeHooks = function ()
     ISDestroyStuffAction.isValid = ISDestroyStuffAction_base.isValid
 
     RecipeManager.getAvailableItemsAll = RecipeManager_base.getAvailableItemsAll
+
+    sendClientCommand(getPlayer(), main.MOD_NAME, 'refreshWhiteList', {})
+
+    -- main.whiteListArr = nil
     -- RecipeManager.IsRecipeValid = RecipeManager_base.IsRecipeValid
     -- RecipeManager.getNumberOfTimesRecipeCanBeDone = RecipeManager_base.getNumberOfTimesRecipeCanBeDone
 end
@@ -429,7 +433,8 @@ if AUD then
 end
 
 -- Events.OnCreateUI.Add(makeHooks)
-Events.OnGameStart.Add(makeHooks)
+Events.OnLoad.Add(makeHooks)
+-- Events.OnGameStart.Add(makeHooks)
 
 -- TODO: 
 --1. брать предметы из ящика при крафте WIP

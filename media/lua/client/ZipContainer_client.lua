@@ -3,7 +3,8 @@ local ZIP_CONTAINER_TYPE = MOD_NAME
 local TILE_NAME_START = ZIP_CONTAINER_TYPE
 local utils = require 'ZipContainer_utils'
 
-
+---@type whiteListType
+local whiteListArr = nil
 
 ---@class ItemTable
 ---@field id integer
@@ -32,9 +33,6 @@ function ZipContainer:new(container)
     if not self.isValid(container) then
         return
     end
-
-    -- ---@type string[]
-    -- self.whiteList = getWhiteListArr()
     ---@type ItemContainer
     self.itemContainer = container
     ---@type function
@@ -71,18 +69,21 @@ function ZipContainer.isValidInArray(containersArr)
 end
 
 ---@param item InventoryItem
----@param whiteList? string[]
-function ZipContainer.isWhiteListed(item, whiteList)
-    whiteList = whiteList or utils.getWhiteListArr()
-    return whiteList[item:getFullType()] or false
+-- -@param whiteList? string[]
+function ZipContainer.isWhiteListed(item)
+    if not whiteListArr then
+        whiteListArr = {}
+        sendClientCommand(getPlayer(), MOD_NAME, 'getWhiteList', {})
+    end
+    return whiteListArr[item:getFullType()] or false
+    
 end
 
 ---@param items InventoryItem[]
 function ZipContainer:removeForbiddenTypeFromItemList(items)
-    local whiteList = utils.getWhiteListArr()
     for i = #items, 1, -1
 	do
-		if not ZipContainer.isWhiteListed(items[i], whiteList)
+		if not ZipContainer.isWhiteListed(items[i])
 		then
 			table.remove(items, i);
 		end
@@ -385,7 +386,17 @@ function ZipContainer:makeLog(items, tag)
     LogExtenderClient.writeLog(fileName, msg)
 end
 
+local receiveServerCommand = function(module, command, args)
+    if module ~= MOD_NAME then return; end
+    if command == 'onGetWhiteList' then
+        whiteListArr = args['whiteListArr']
+    end
+end
+Events.OnServerCommand.Add(receiveServerCommand)
+
+
 return {
+    MOD_NAME = MOD_NAME,
     ZipContainer = ZipContainer,
     TILE_NAME_START = TILE_NAME_START
 }

@@ -3,4 +3,6 @@ Sandbox_RU = {
 
 	Sandbox_ZipContainer_WhiteList = "Разрешенные предметы",
 	Sandbox_ZipContainer_WhiteList_tooltip = "Список типов через запятую, например: Base.Nails, Base.Plank, ...",
+	Sandbox_ZipContainer_WhiteListJsonFileName = "Имя json файла с белым списком",
+	Sandbox_ZipContainer_WhiteListJsonFileName_tooltip = "Работает одновременно с sandbox option и имеет формат: [\"Base.Glue\", \"Base.Woodglue\"]",
 }

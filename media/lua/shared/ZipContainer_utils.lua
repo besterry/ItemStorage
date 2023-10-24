@@ -1,27 +1,3 @@
----@alias whiteListType table<string, boolean>
----@type whiteListType
-local whiteListArr = nil
-
----@return whiteListType
-local function getWhiteListArr ()
-    if whiteListArr then
-        return whiteListArr
-    end
-
-    ---@type string
-    local whiteListStr = SandboxVars.ZipContainer.WhiteList
-    if whiteListStr then
-        local str = string.gsub(whiteListStr, "%s+", "")
-        local arr = luautils.split(str, ',')
-        whiteListArr = {}
-        for _, type in pairs(arr) do
-            whiteListArr[type] = true
-        end
-        return whiteListArr
-    end
-    return {}
-end
-
 -- copy from BravensUtils.DelayFunction
 local delayFn = function(func, delay)
 
@@ -98,5 +74,5 @@ end
 return {
     delay = delayFn,
     debounce = debounceFn,
-    getWhiteListArr = getWhiteListArr
+    -- getWhiteListArr = getWhiteListArr,
 }

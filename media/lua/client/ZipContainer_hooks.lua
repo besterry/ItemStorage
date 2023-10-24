@@ -70,7 +70,8 @@ end
 function ISDestroyStuffAction_patch:isValid()
     local o = ISDestroyStuffAction_base.isValid(self)
     local object = self.item
-    if isZipTile(object) and not isEmpty(object) and not getAccessLevel() == "admin" then
+
+    if isZipTile(object) and not isEmpty(object) and not isAdmin() then
         self.character:Say(getText('IGUI_Container_not_empty'))
         return false
     end

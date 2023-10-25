@@ -58,7 +58,7 @@ Events.OnServerStarted.Add(getWhiteListArr)
 
 local commands = {}
 commands.getWhiteList = function(player, args)
-    print('whiteListArr', whiteListArr)
+    --print('whiteListArr', whiteListArr)
     sendServerCommand(main.MOD_NAME, "onGetWhiteList", {whiteListArr = getWhiteListArr()})
 end
 commands.refreshWhiteList = function(player, args)

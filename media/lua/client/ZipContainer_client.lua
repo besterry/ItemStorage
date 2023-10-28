@@ -13,6 +13,7 @@ local whiteListArr = nil
 ---@field delta number
 ---@field hunger number
 ---@field weight number
+---@field actualWeight number
 ---@field isBroken boolean
 ---@field isCooked boolean
 ---@field cookedString string
@@ -21,6 +22,7 @@ local whiteListArr = nil
 ---@field haveBeenRepaired integer?
 ---@field capacity integer?
 ---@field maxCapacity integer?
+---@field isCustomWeight boolean?
 
 ---@alias zipTable table<string, ItemTable[]>
 
@@ -123,9 +125,13 @@ function ZipContainer:getItems()
                 item:setCondition(typeTable.condition)
                 item:setAge(typeTable.age)
                 item:setBroken(typeTable.isBroken)
-
-                -- сцеп 1,28
-
+                item:setCustomWeight(typeTable.isCustomWeight or false)
+                if typeTable.weight then
+                    item:setWeight(typeTable.weight)
+                end
+                if typeTable.actualWeight then
+                    item:setActualWeight(typeTable.actualWeight)
+                end
                 if typeTable.capacity then
                     item:setItemCapacity(typeTable.capacity)
                 end
@@ -264,9 +270,11 @@ function ZipContainer:addItems(items)
             id = item:getID(),
             condition = item:getCondition(),
             weight = item:getUnequippedWeight(),
+            actualWeight = item:getActualWeight(),
+            isCustomWeight = item:isCustomWeight(),
             age = item:getAge(),
             isBroken = item:isBroken(),
-            haveBeenRepaired = item:getHaveBeenRepaired()
+            haveBeenRepaired = item:getHaveBeenRepaired(),
         }
         -- print('item:getVisual(): ', item:getVisual()) -- относится к одежде. Там много параметров. Вероятно проще запретить хранить одежду
         -- print('item:getVisual():toString() ', item:getVisual():toString())
@@ -277,6 +285,15 @@ function ZipContainer:addItems(items)
         -- print(':getItemCapacity()', item:getItemCapacity()) -- похоже для контейнеров
         -- print(':getMaxCapacity()', item:getMaxCapacity()) -- макс вместимость
         -- setItemCapacity
+        -- print(':getWeight()', item:getWeight()) -- setWeight
+        -- print(':getActualWeight()', item:getActualWeight()) -- setActualWeight
+        -- print(':getExtraItemsWeight()', item:getExtraItemsWeight()) -- 
+        -- print(':isCustomWeight()', item:isCustomWeight()) -- setCustomWeight
+        -- print(':getContentsWeight()', item:getContentsWeight()) -- 
+        -- print(':getEquippedWeight()', item:getEquippedWeight()) -- 
+        -- print(':getUnequippedWeight()', item:getUnequippedWeight()) -- 
+
+
         local capacity = item:getItemCapacity()
         local maxCapacity = item:getMaxCapacity()
         if capacity ~= -1 then

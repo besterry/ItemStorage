@@ -19,6 +19,8 @@ local whiteListArr = nil
 ---@field isBurnt boolean
 ---@field burntString string
 ---@field haveBeenRepaired integer?
+---@field capacity integer?
+---@field maxCapacity integer?
 
 ---@alias zipTable table<string, ItemTable[]>
 
@@ -80,6 +82,10 @@ function ZipContainer.isWhiteListed(item)
     if AUD then
         debug_list['Base.EngineDoor1'] = true
         debug_list['Hydrocraft.HCBookcover'] = true
+        debug_list['Base.DodgeRTtire3'] = true
+        debug_list['Base.CUDAtire3'] = true
+        debug_list['Base.NormalTire1'] = true
+
         print('item:getFullType()', item:getFullType())
     end
     local itemType = item:getFullType()
@@ -118,10 +124,17 @@ function ZipContainer:getItems()
                 item:setAge(typeTable.age)
                 item:setBroken(typeTable.isBroken)
 
+                -- сцеп 1,28
+
+                if typeTable.capacity then
+                    item:setItemCapacity(typeTable.capacity)
+                end
+                if typeTable.maxCapacity then
+                    item:setMaxCapacity(typeTable.maxCapacity)
+                end
                 if typeTable.haveBeenRepaired then
                     item:setHaveBeenRepaired(typeTable.haveBeenRepaired)
                 end
-
                 if typeTable.isCooked then
                     item:setCooked(typeTable.isCooked)
                     item:setCookedString(typeTable.cookedString)
@@ -259,7 +272,19 @@ function ZipContainer:addItems(items)
         -- print('item:getVisual():toString() ', item:getVisual():toString())
         -- print('item:getColor() ', item:getColor())
         -- print('item:getColor():toString() ', item:getColor():toString())
-        print('getHaveBeenRepaired ', item:getHaveBeenRepaired())
+        -- шина вес 10, давление 24, сцеп 1.27
+        -- print('getHaveBeenRepaired ', item:getHaveBeenRepaired())
+        -- print(':getItemCapacity()', item:getItemCapacity()) -- похоже для контейнеров
+        -- print(':getMaxCapacity()', item:getMaxCapacity()) -- макс вместимость
+        -- setItemCapacity
+        local capacity = item:getItemCapacity()
+        local maxCapacity = item:getMaxCapacity()
+        if capacity ~= -1 then
+            resultTable['capacity'] = capacity
+        end
+        if maxCapacity ~= -1 then
+            resultTable['maxCapacity'] = maxCapacity
+        end
         if item:isCooked() then
             resultTable['isCooked'] = item:isCooked()
             resultTable['cookedString'] = item:getCookedString()

@@ -18,6 +18,7 @@ local whiteListArr = nil
 ---@field cookedString string
 ---@field isBurnt boolean
 ---@field burntString string
+---@field haveBeenRepaired integer?
 
 ---@alias zipTable table<string, ItemTable[]>
 
@@ -75,7 +76,14 @@ function ZipContainer.isWhiteListed(item)
         whiteListArr = {}
         sendClientCommand(getPlayer(), MOD_NAME, 'getWhiteList', {})
     end
-    return whiteListArr[item:getFullType()] or false
+    local debug_list = {}
+    if AUD then
+        debug_list['Base.EngineDoor1'] = true
+        debug_list['Hydrocraft.HCBookcover'] = true
+        print('item:getFullType()', item:getFullType())
+    end
+    local itemType = item:getFullType()
+    return debug_list[itemType] or whiteListArr[itemType] or false
     
 end
 
@@ -110,6 +118,10 @@ function ZipContainer:getItems()
                 item:setAge(typeTable.age)
                 item:setBroken(typeTable.isBroken)
 
+                if typeTable.haveBeenRepaired then
+                    item:setHaveBeenRepaired(typeTable.haveBeenRepaired)
+                end
+
                 if typeTable.isCooked then
                     item:setCooked(typeTable.isCooked)
                     item:setCookedString(typeTable.cookedString)
@@ -126,6 +138,7 @@ function ZipContainer:getItems()
                     item = item  --[[@as Food]]
                     item:setHungChange(typeTable.hunger)
                 end
+
                 table.insert(resultList, item)
             else
                 typeTables[idx] = nil
@@ -240,11 +253,13 @@ function ZipContainer:addItems(items)
             weight = item:getUnequippedWeight(),
             age = item:getAge(),
             isBroken = item:isBroken(),
+            haveBeenRepaired = item:getHaveBeenRepaired()
         }
         -- print('item:getVisual(): ', item:getVisual()) -- относится к одежде. Там много параметров. Вероятно проще запретить хранить одежду
         -- print('item:getVisual():toString() ', item:getVisual():toString())
         -- print('item:getColor() ', item:getColor())
         -- print('item:getColor():toString() ', item:getColor():toString())
+        print('getHaveBeenRepaired ', item:getHaveBeenRepaired())
         if item:isCooked() then
             resultTable['isCooked'] = item:isCooked()
             resultTable['cookedString'] = item:getCookedString()

@@ -437,9 +437,10 @@ function ZipContainer:makeLog(items, tag)
     if not LogExtenderClient or not LogExtenderClient.writeLog then return; end
     local fileName = 'ZipContainer'
     -- local dateTimeStr = os.date('%d.%m.%Y %H:%M:%S')
+    local position = math.floor(getPlayer():getX()) .. "," .. math.floor(getPlayer():getY()) .. "," .. math.floor(getPlayer():getZ())
     local username = getPlayer():getUsername()
     local itemsStr = getItemsCountStr(items)
-    local msg = ('[%s]:[%s]: %s'):format(username, tag, itemsStr)
+    local msg = ('[%s]:[%s]:[%s]: %s'):format(username,position, tag, itemsStr)
     LogExtenderClient.writeLog(fileName, msg)
 end
 

@@ -81,15 +81,15 @@ function ZipContainer.isWhiteListed(item)
         sendClientCommand(getPlayer(), MOD_NAME, 'getWhiteList', {})
     end
     local debug_list = {}
-    if AUD then
-        debug_list['Base.EngineDoor1'] = true
-        debug_list['Hydrocraft.HCBookcover'] = true
-        debug_list['Base.DodgeRTtire3'] = true
-        debug_list['Base.CUDAtire3'] = true
-        debug_list['Base.NormalTire1'] = true
+    -- if AUD then
+    --     debug_list['Base.EngineDoor1'] = true
+    --     debug_list['Hydrocraft.HCBookcover'] = true
+    --     debug_list['Base.DodgeRTtire3'] = true
+    --     debug_list['Base.CUDAtire3'] = true
+    --     debug_list['Base.NormalTire1'] = true
 
-        print('item:getFullType()', item:getFullType())
-    end
+    --     print('item:getFullType()', item:getFullType())
+    -- end
     local itemType = item:getFullType()
     return debug_list[itemType] or whiteListArr[itemType] or false
     
@@ -166,6 +166,10 @@ function ZipContainer:getItems()
                     item:setKeyId(typeTable.KeyId)
                     item:setName(typeTable.DisplayName)
                 end
+                if typeTable.MediaData then
+                    item:setRecordedMediaData(typeTable.MediaData)
+                end
+                
                 table.insert(resultList, item)
             else
                 typeTables[idx] = nil
@@ -304,6 +308,10 @@ function ZipContainer:addItems(items)
 
         local capacity = item:getItemCapacity()
         local maxCapacity = item:getMaxCapacity()
+
+        if instanceof(item, 'ComboItem') then
+            resultTable['MediaData'] = item:getMediaData()
+        end
         if instanceof(item, 'Key') then
             resultTable['KeyId'] = item:getKeyId()
             resultTable['DisplayName'] = item:getDisplayName()

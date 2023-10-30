@@ -159,15 +159,15 @@ function ZipContainer:getItems()
                 end
                 if typeTable.isAlarmSet ~= nil then
                     item:setAlarmSet(typeTable.isAlarmSet)
-                    item:setHour(typeTable.Hour)
-                    item:setMinute(typeTable.Minute)
+                    item:setHour(typeTable.hour)
+                    item:setMinute(typeTable.minute)
                 end
                 if typeTable.KeyId then
-                    item:setKeyId(typeTable.KeyId)
-                    item:setName(typeTable.DisplayName)
+                    item:setKeyId(typeTable.keyId)
+                    item:setName(typeTable.displayName)
                 end
                 if typeTable.MediaData then
-                    item:setRecordedMediaData(typeTable.MediaData)
+                    item:setRecordedMediaData(typeTable.mediaData)
                 end
                 
                 table.insert(resultList, item)
@@ -309,17 +309,17 @@ function ZipContainer:addItems(items)
         local capacity = item:getItemCapacity()
         local maxCapacity = item:getMaxCapacity()
 
-        if instanceof(item, 'ComboItem') then
-            resultTable['MediaData'] = item:getMediaData()
-        end
+
+        resultTable['mediaData'] = item:getMediaData()
+        
         if instanceof(item, 'Key') then
-            resultTable['KeyId'] = item:getKeyId()
-            resultTable['DisplayName'] = item:getDisplayName()
+            resultTable['keyId'] = item:getKeyId()
+            resultTable['displayName'] = item:getDisplayName()
         end
         if instanceof(item, 'AlarmClock') or instanceof(item, "AlarmClockClothing") then
             resultTable['isAlarmSet'] = item:isAlarmSet()
-            resultTable['Hour'] = item:getHour()
-            resultTable['Minute']= item:getMinute()
+            resultTable['hour'] = item:getHour()
+            resultTable['minute']= item:getMinute()
         end
         if capacity ~= -1 then
             resultTable['capacity'] = capacity

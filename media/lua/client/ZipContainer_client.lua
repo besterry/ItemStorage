@@ -157,6 +157,11 @@ function ZipContainer:getItems()
                     item = item  --[[@as Food]]
                     item:setHungChange(typeTable.hunger)
                 end
+                if typeTable.isAlarmSet ~= nil then
+                    item:setAlarmSet(typeTable.isAlarmSet)
+                    item:setHour(typeTable.Hour)
+                    item:setMinute(typeTable.Minute)
+                end
 
                 table.insert(resultList, item)
             else
@@ -296,6 +301,11 @@ function ZipContainer:addItems(items)
 
         local capacity = item:getItemCapacity()
         local maxCapacity = item:getMaxCapacity()
+        if instanceof(item, 'AlarmClock') or instanceof(item, "AlarmClockClothing") then
+            resultTable['isAlarmSet'] = item:isAlarmSet()
+            resultTable['Hour'] = item:getHour()
+            resultTable['Minute']= item:getMinute()
+        end
         if capacity ~= -1 then
             resultTable['capacity'] = capacity
         end

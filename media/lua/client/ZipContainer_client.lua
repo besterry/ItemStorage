@@ -164,10 +164,20 @@ function ZipContainer:getItems()
                 end
                 if typeTable.KeyId then
                     item:setKeyId(typeTable.keyId)
-                    item:setName(typeTable.displayName)
                 end
-                if typeTable.MediaData then
+                if typeTable.displayName then
+                    item:setName(typeTable.displayName)
+                end               
+                -- print("mediaDataOnLoad:", typeTable.mediaData)
+                if typeTable.mediaData ~= nil then
+                    -- print("mediaDataOnLoad:", typeTable.mediaData)
                     item:setRecordedMediaData(typeTable.mediaData)
+                end
+                if typeTable.modData ~= nil then
+                    item:copyModData(typeTable.modData)
+                end
+                if typeTable.customPages then
+                    item:setCustomPages(typeTable.customPages)
                 end
                 
                 table.insert(resultList, item)
@@ -304,14 +314,22 @@ function ZipContainer:addItems(items)
         -- print(':getContentsWeight()', item:getContentsWeight()) -- 
         -- print(':getEquippedWeight()', item:getEquippedWeight()) -- 
         -- print(':getUnequippedWeight()', item:getUnequippedWeight()) -- 
-
+        -- print("mediaDataOnSave:",resultTable['mediaData'])
 
         local capacity = item:getItemCapacity()
         local maxCapacity = item:getMaxCapacity()
 
-
+        resultTable['modData'] = item:getModData()
         resultTable['mediaData'] = item:getMediaData()
         
+        if item:getFullType() == "Base.Notebook" then
+            resultTable['displayName'] = item:getDisplayName()
+            resultTable['customPages'] =item:getCustomPages()
+        end
+
+        if item:getFullType() == "Base.SkillRecoveryJournal" then
+            resultTable['displayName'] = item:getDisplayName()
+        end
         if instanceof(item, 'Key') then
             resultTable['keyId'] = item:getKeyId()
             resultTable['displayName'] = item:getDisplayName()

@@ -162,7 +162,10 @@ function ZipContainer:getItems()
                     item:setHour(typeTable.Hour)
                     item:setMinute(typeTable.Minute)
                 end
-
+                if typeTable.KeyId then
+                    item:setKeyId(typeTable.KeyId)
+                    item:setName(typeTable.DisplayName)
+                end
                 table.insert(resultList, item)
             else
                 typeTables[idx] = nil
@@ -301,6 +304,10 @@ function ZipContainer:addItems(items)
 
         local capacity = item:getItemCapacity()
         local maxCapacity = item:getMaxCapacity()
+        if instanceof(item, 'Key') then
+            resultTable['KeyId'] = item:getKeyId()
+            resultTable['DisplayName'] = item:getDisplayName()
+        end
         if instanceof(item, 'AlarmClock') or instanceof(item, "AlarmClockClothing") then
             resultTable['isAlarmSet'] = item:isAlarmSet()
             resultTable['Hour'] = item:getHour()

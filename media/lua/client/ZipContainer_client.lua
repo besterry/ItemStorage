@@ -19,10 +19,18 @@ local whiteListArr = nil
 ---@field cookedString string
 ---@field isBurnt boolean
 ---@field burntString string
----@field haveBeenRepaired integer?
----@field capacity integer?
----@field maxCapacity integer?
----@field isCustomWeight boolean?
+---@field haveBeenRepaired integer
+---@field capacity integer | nil
+---@field maxCapacity integer | nil
+---@field isCustomWeight boolean | nil
+---@field isAlarmSet boolean | nil
+---@field hour integer | nil
+---@field minute integer | nil
+---@field keyId integer | nil
+---@field displayName string | nil
+---@field mediaData MediaData | nil
+---@field modData ModData | nil
+---@field customPages HashMap | nil
 
 ---@alias zipTable table<string, ItemTable[]>
 
@@ -158,6 +166,7 @@ function ZipContainer:getItems()
                     item:setHungChange(typeTable.hunger)
                 end
                 if typeTable.isAlarmSet ~= nil then
+                    item = item  --[[@as AlarmClock]]
                     item:setAlarmSet(typeTable.isAlarmSet)
                     item:setHour(typeTable.hour)
                     item:setMinute(typeTable.minute)
@@ -167,19 +176,18 @@ function ZipContainer:getItems()
                 end
                 if typeTable.displayName then
                     item:setName(typeTable.displayName)
-                end               
-                -- print("mediaDataOnLoad:", typeTable.mediaData)
+                end
                 if typeTable.mediaData ~= nil then
-                    -- print("mediaDataOnLoad:", typeTable.mediaData)
                     item:setRecordedMediaData(typeTable.mediaData)
                 end
                 if typeTable.modData ~= nil then
                     item:copyModData(typeTable.modData)
                 end
                 if typeTable.customPages then
+                    item = item  --[[@as Literature]]
                     item:setCustomPages(typeTable.customPages)
                 end
-                
+
                 table.insert(resultList, item)
             else
                 typeTables[idx] = nil
@@ -194,8 +202,79 @@ function ZipContainer:makeItems()
     self.itemContainer:removeAllItems()
     local items = self:getItems()
     for _, item in pairs(items) do
+        -- local remove_base = item:
         self.itemContainer:addItem(item)
     end
+    -- local DoRemoveItem_base = self.itemContainer.DoRemoveItem
+    -- print('DoRemoveItem_base', DoRemoveItem_base)
+    -- function self.itemContainer:DoRemoveItem (item)
+    --     print('DoRemoveItem')
+    --     local o = DoRemoveItem_base(self, item)
+    --     return o
+    -- end
+    -- self.itemContainer.DoRemoveItem = function (_self, item)
+    --     -- local o = DoRemoveItem_base(_self, item)
+    --     print('DoRemoveItem', _self, item)
+    --     -- self.itemContainer.DoRemoveItem = DoRemoveItem_base
+    --     -- return o
+    -- end
+    -- local Remove_base = self.itemContainer.Remove
+    -- self.itemContainer.Remove = function (_self, item)
+    --     local o = Remove_base(_self, item)
+    --     print('Remove')
+    --     self.itemContainer.Remove = Remove_base
+    --     return o
+    -- end
+    -- local RemoveAll_base = self.itemContainer.RemoveAll
+    -- self.itemContainer.RemoveAll = function (_self, item)
+    --     local o = RemoveAll_base(_self, item)
+    --     print('RemoveAll')
+    --     self.itemContainer.RemoveAll = RemoveAll_base
+    --     return o
+    -- end
+    -- local removeAllItems_base = self.itemContainer.removeAllItems
+    -- self.itemContainer.removeAllItems = function (_self, item)
+    --     local o = removeAllItems_base(_self, item)
+    --     print('removeAllItems_base')
+    --     self.itemContainer.removeAllItems = removeAllItems_base
+    --     return o
+    -- end
+    -- local removeItemOnServer_base = self.itemContainer.removeItemOnServer
+    -- self.itemContainer.removeItemOnServer = function (_self, item)
+    --     local o = removeItemOnServer_base(_self, item)
+    --     print('removeItemOnServer')
+    --     self.itemContainer.removeItemOnServer = removeItemOnServer_base
+    --     return o
+    -- end
+    -- local removeItemsFromProcessItems_base = self.itemContainer.removeItemsFromProcessItems
+    -- self.itemContainer.removeItemsFromProcessItems = function (_self, item)
+    --     local o = removeItemsFromProcessItems_base(_self, item)
+    --     print('removeItemsFromProcessItems')
+    --     self.itemContainer.removeItemsFromProcessItems = removeItemsFromProcessItems_base
+    --     return o
+    -- end
+    -- local removeItemWithID_base = self.itemContainer.removeItemWithID
+    -- self.itemContainer.removeItemWithID = function (_self, item)
+    --     local o = removeItemWithID_base(_self, item)
+    --     print('removeItemWithID')
+    --     self.itemContainer.removeItemWithID = removeItemWithID_base
+    --     return o
+    -- end
+    -- local removeItemWithIDRecurse_base = self.itemContainer.removeItemWithIDRecurse
+    -- self.itemContainer.removeItemWithIDRecurse = function (_self, item)
+    --     local o = removeItemWithIDRecurse_base(_self, item)
+    --     print('removeItemWithIDRecurse')
+    --     self.itemContainer.removeItemWithIDRecurse = removeItemWithIDRecurse_base
+    --     return o
+    -- end
+    -- local RemoveOneOf_base = self.itemContainer.RemoveOneOf
+    -- self.itemContainer.RemoveOneOf = function (_self, item)
+    --     local o = RemoveOneOf_base(_self, item)
+    --     print('RemoveOneOf')
+    --     self.itemContainer.RemoveOneOf = RemoveOneOf_base
+    --     return o
+    -- end
+
     -- for type, typeTables in pairs(self.modData) do
     --     for idx, typeTable in pairs(typeTables) do
     --         local item = InventoryItemFactory.CreateItem(type);
@@ -230,55 +309,55 @@ function ZipContainer:makeItems()
     return self.itemContainer
 end
 
-local function clone(item)
-    local newItem = InventoryItemFactory.CreateItem(item:getFullType())
-    if not newItem then return end
-    -- newItem:setAge(item:getAge())
-    -- newItem:setCondition(item:getCondition(), false)
-    newItem:getVisual():copyFrom(item:getVisual()) -- !
-    -- newItem:setBroken(item:isBroken())
-    newItem:setColor(item:getColor())
-    -- if item:isCooked() then
-    --     newItem:setCooked(item:isCooked())
-    --     newItem:setCookedString(item:getCookedString())
-    -- end
-    -- if item:isBurnt() then
-    --     newItem:setBurnt(item:isBurnt())
-    --     newItem:setBurntString(item:getBurntString())
-    -- end
-    newItem:setDisplayName(item:getDisplayName())
+-- local function clone(item)
+--     local newItem = InventoryItemFactory.CreateItem(item:getFullType())
+--     if not newItem then return end
+--     -- newItem:setAge(item:getAge())
+--     -- newItem:setCondition(item:getCondition(), false)
+--     newItem:getVisual():copyFrom(item:getVisual()) -- !
+--     -- newItem:setBroken(item:isBroken())
+--     newItem:setColor(item:getColor())
+--     -- if item:isCooked() then
+--     --     newItem:setCooked(item:isCooked())
+--     --     newItem:setCookedString(item:getCookedString())
+--     -- end
+--     -- if item:isBurnt() then
+--     --     newItem:setBurnt(item:isBurnt())
+--     --     newItem:setBurntString(item:getBurntString())
+--     -- end
+--     newItem:setDisplayName(item:getDisplayName())
 
-    if item:hasModData() then
-        newItem:copyModData(item:getModData())
-    end
-    if instanceof(item, "Clothing") then
-        item:copyPatchesTo(newItem)
-        newItem:setBloodLevel(item:getBloodLevel())
-        newItem:setDirtyness(item:getDirtyness())
-        newItem:setPalette(item:getPalette())
-        newItem:setWetness(item:getWetness())
-    end
-    if instanceof(item, "DrainableComboItem") then
-        newItem:setUsedDelta(item:getUsedDelta())
-        newItem:updateWeight()
-    end
-    if instanceof(item, "Food") then
-        newItem:setCalories(item:getCalories())
-        newItem:setCarbohydrates(item:getCarbohydrates())
-        newItem:setProteins(item:getProteins())
-        newItem:setLipids(item:getLipids())
-        newItem:setWeight(item:getWeight())
-        newItem:setHungChange(item:getHungChange())
-        newItem:setUnhappyChange(item:getUnhappyChange())
-        newItem:setBoredomChange(item:getBoredomChange())
-        newItem:setStressChange(item:getStressChange())
-        newItem:setEnduranceChange(item:getEnduranceChange())
-        newItem:setPainReduction(item:getPainReduction())
-        newItem:setThirstChange(item:getThirstChange())
-        newItem:setCookedInMicrowave(item:isCookedInMicrowave())
-        newItem:setSpices(item:getSpices())
-    end
-end
+--     if item:hasModData() then
+--         newItem:copyModData(item:getModData())
+--     end
+--     if instanceof(item, "Clothing") then
+--         item:copyPatchesTo(newItem)
+--         newItem:setBloodLevel(item:getBloodLevel())
+--         newItem:setDirtyness(item:getDirtyness())
+--         newItem:setPalette(item:getPalette())
+--         newItem:setWetness(item:getWetness())
+--     end
+--     if instanceof(item, "DrainableComboItem") then
+--         newItem:setUsedDelta(item:getUsedDelta())
+--         newItem:updateWeight()
+--     end
+--     if instanceof(item, "Food") then
+--         newItem:setCalories(item:getCalories())
+--         newItem:setCarbohydrates(item:getCarbohydrates())
+--         newItem:setProteins(item:getProteins())
+--         newItem:setLipids(item:getLipids())
+--         newItem:setWeight(item:getWeight())
+--         newItem:setHungChange(item:getHungChange())
+--         newItem:setUnhappyChange(item:getUnhappyChange())
+--         newItem:setBoredomChange(item:getBoredomChange())
+--         newItem:setStressChange(item:getStressChange())
+--         newItem:setEnduranceChange(item:getEnduranceChange())
+--         newItem:setPainReduction(item:getPainReduction())
+--         newItem:setThirstChange(item:getThirstChange())
+--         newItem:setCookedInMicrowave(item:isCookedInMicrowave())
+--         newItem:setSpices(item:getSpices())
+--     end
+-- end
 
 ---@param items InventoryItem[]
 function ZipContainer:addItems(items)
@@ -323,6 +402,7 @@ function ZipContainer:addItems(items)
         resultTable['mediaData'] = item:getMediaData()
         
         if item:getFullType() == "Base.Notebook" then
+            item = item --[[@as Literature]]
             resultTable['displayName'] = item:getDisplayName()
             resultTable['customPages'] =item:getCustomPages()
         end
@@ -335,6 +415,7 @@ function ZipContainer:addItems(items)
             resultTable['displayName'] = item:getDisplayName()
         end
         if instanceof(item, 'AlarmClock') or instanceof(item, "AlarmClockClothing") then
+            item = item --[[@as AlarmClock]]
             resultTable['isAlarmSet'] = item:isAlarmSet()
             resultTable['hour'] = item:getHour()
             resultTable['minute']= item:getMinute()

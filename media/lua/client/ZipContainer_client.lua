@@ -162,7 +162,7 @@ function ZipContainer:getItems()
                     item:setHour(typeTable.hour)
                     item:setMinute(typeTable.minute)
                 end
-                if typeTable.KeyId then
+                if typeTable.keyId then
                     item:setKeyId(typeTable.keyId)
                 end
                 if typeTable.displayName then

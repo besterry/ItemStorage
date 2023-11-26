@@ -62,6 +62,9 @@ end
 
 ---@param container ItemContainer
 function ZipContainer.isValid(container)
+    if not container then
+        return false
+    end
     return container:getType() == ZIP_CONTAINER_TYPE
 end
 

@@ -34,7 +34,9 @@ local RecipeManager_base = {
     getAvailableItemsAll = RecipeManager.getAvailableItemsAll,
     getAvailableItemsNeeded = RecipeManager.getAvailableItemsNeeded,
     IsRecipeValid = RecipeManager.IsRecipeValid,
-    getNumberOfTimesRecipeCanBeDone = RecipeManager.getNumberOfTimesRecipeCanBeDone
+    getNumberOfTimesRecipeCanBeDone = RecipeManager.getNumberOfTimesRecipeCanBeDone,
+    PerformMakeItem = RecipeManager.PerformMakeItem,
+    UseAmount = RecipeManager.UseAmount
 }
 
 local ISDestroyStuffAction_base = {
@@ -160,43 +162,27 @@ function RecipeManager_patch.getNumberOfTimesRecipeCanBeDone(recipe, player, con
     return resultNumberTable[1]
 end
 
---- @public
---- @static
 --- @param recipe Recipe
 --- @param player IsoGameCharacter
 --- @param item InventoryItem
 --- @param containersArr ArrayList
 --- @return boolean
 function RecipeManager_patch.IsRecipeValid(recipe, player, item, containersArr)
-    local o = RecipeManager_base.IsRecipeValid(recipe, player, item, containersArr)
-    if not ZipContainer.isValidInArray(containersArr) or o then
-        return o
-    end
-
-    local isValidCount = 0
-    local recipeSources = recipe:getSource()
-    local sourcesSize = recipeSources:size()
-    for i = 0, sourcesSize - 1 do
-        local itemTypeList = recipeSources:get(i):getItems()
-        local itemCount = recipeSources:get(i):getCount()
-        local hasItemCount = 0
-        for j = 0, containersArr:size() - 1 do
-            ---@type ItemContainer
-            local container = containersArr:get(j)
-            local zipContainer = ZipContainer:new(container)
-            for k = 0, itemTypeList:size() -1 do
-                local itemType = itemTypeList:get(k)
-                hasItemCount = hasItemCount + container:getCountType(itemType)
+    local copyContainersArr = containersArr:clone()
+    copyContainersArr:trimToSize()
+    if recipe:isCanBeDoneFromFloor() then
+        for i = copyContainersArr:size() - 1, 0, -1 do
+            local container = copyContainersArr:get(i)
+            if container then
+                local zipContainer = ZipContainer:new(container)
                 if zipContainer then
-                    hasItemCount = hasItemCount + zipContainer:countItems(itemType)
+                    copyContainersArr:remove(container)
+                    copyContainersArr:trimToSize()
                 end
             end
         end
-        if hasItemCount >= itemCount then
-            isValidCount = isValidCount + 1
-        end
     end
-    return sourcesSize == isValidCount
+    return RecipeManager_base.IsRecipeValid(recipe, player, item, copyContainersArr)
 end
 
 --- @param recipe Recipe
@@ -206,6 +192,7 @@ end
 --- @param ignoreItems ArrayList
 --- @return ArrayList
 function RecipeManager_patch.getAvailableItemsAll(recipe, player, containersArr, selectedItem, ignoreItems)
+    -- print('getAvailableItemsAll')
     local o = RecipeManager_base.getAvailableItemsAll(recipe, player, containersArr, selectedItem, ignoreItems)
     for i = 0, containersArr:size() - 1 do
         local zipContainer = ZipContainer:new(containersArr:get(i))
@@ -372,6 +359,10 @@ function ISInventoryTransferAction_patch:isValid()
     return ISInventoryTransferAction_base.isValid(self)
 end
 
+-- local removeItemTransaction_base = removeItemTransaction
+-- local InvMngRemoveItem_base = InvMngRemoveItem
+-- local createItemTransaction_base = createItemTransaction
+-- local isItemTransactionConsistent_base = isItemTransactionConsistent
 local makeHooks = function ()
     print('Zip Container: make hooks')
     ISInventoryPane.refreshContainer = ISInventoryPane_patch.refreshContainer
@@ -391,11 +382,10 @@ local makeHooks = function ()
 
     ISDestroyStuffAction.isValid = ISDestroyStuffAction_patch.isValid
 
+    RecipeManager.IsRecipeValid = RecipeManager_patch.IsRecipeValid
     RecipeManager.getAvailableItemsAll = RecipeManager_patch.getAvailableItemsAll
 
     sendClientCommand(getPlayer(), main.MOD_NAME, 'getWhiteList', {})
-    -- RecipeManager.IsRecipeValid = RecipeManager_patch.IsRecipeValid
-    -- RecipeManager.getNumberOfTimesRecipeCanBeDone = RecipeManager_patch.getNumberOfTimesRecipeCanBeDone
 end
 local removeHooks = function ()
     print('Zip Container: remove hooks')
@@ -417,25 +407,15 @@ local removeHooks = function ()
     ISDestroyStuffAction.isValid = ISDestroyStuffAction_base.isValid
 
     RecipeManager.getAvailableItemsAll = RecipeManager_base.getAvailableItemsAll
+    RecipeManager.IsRecipeValid = RecipeManager_base.IsRecipeValid
 
     sendClientCommand(getPlayer(), main.MOD_NAME, 'refreshWhiteList', {})
 
-    -- main.whiteListArr = nil
-    -- RecipeManager.IsRecipeValid = RecipeManager_base.IsRecipeValid
-    -- RecipeManager.getNumberOfTimesRecipeCanBeDone = RecipeManager_base.getNumberOfTimesRecipeCanBeDone
 end
-
--- GmakeHooks = makeHooks -- TODO: дебаг переменная. Удалить
--- GremoveHooks = removeHooks
 
 if AUD then
     AUD.setButton(1, "Add hooks", makeHooks)
     AUD.setButton(2, "Remove hooks", removeHooks)
 end
 
--- Events.OnCreateUI.Add(makeHooks)
 Events.OnLoad.Add(makeHooks)
--- Events.OnGameStart.Add(makeHooks)
-
--- TODO: 
---1. брать предметы из ящика при крафте WIP

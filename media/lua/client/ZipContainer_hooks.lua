@@ -168,6 +168,9 @@ end
 --- @param containersArr ArrayList
 --- @return boolean
 function RecipeManager_patch.IsRecipeValid(recipe, player, item, containersArr)
+    if (containersArr == nil) then
+        return RecipeManager_base.IsRecipeValid(recipe, player, item, containersArr)
+    end
     local copyContainersArr = containersArr:clone()
     copyContainersArr:trimToSize()
     if recipe:isCanBeDoneFromFloor() then

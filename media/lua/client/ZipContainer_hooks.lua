@@ -288,7 +288,6 @@ function ISInventoryPage_patch:selectContainer(button)
     return ISInventoryPage_base.selectContainer(self, button)
 end
 
-
 function ISInventoryPane_patch:renderdetails(doDragged)
     local o = ISInventoryPane_base.renderdetails(self, doDragged)
     local y = 0;
@@ -359,7 +358,18 @@ function ISInventoryTransferAction_patch:isValid()
         getServerOptions = o_getServerOptions
         return p_result
     end
-    return ISInventoryTransferAction_base.isValid(self)
+
+    local o_result = ISInventoryTransferAction_base.isValid(self)
+    local isOwner = false
+    if self.srcContainer then
+        local parent = self.srcContainer:getParent()
+        if parent and parent:getModData().owner then
+            isOwner = self.character:getUsername() == parent:getModData().owner
+            if isAdmin() then isOwner = true end
+            return (o_result and isOwner)
+        end
+    end
+    return o_result
 end
 
 -- local removeItemTransaction_base = removeItemTransaction

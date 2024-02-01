@@ -6,7 +6,8 @@ local hasZipNear = false
 
 local ISInventoryPaneContextMenu_base = {
     -- onPutItems = ISInventoryPaneContextMenu.onPutItems
-    isAnyAllowed = ISInventoryPaneContextMenu.isAnyAllowed
+    isAnyAllowed = ISInventoryPaneContextMenu.isAnyAllowed,
+    addDynamicalContextMenu = ISInventoryPaneContextMenu.addDynamicalContextMenu
 }
 
 local ISInventoryPane_base = {
@@ -99,67 +100,151 @@ function ISInventoryPaneContextMenu_patch.isAnyAllowed(container, items)
     return ISInventoryPaneContextMenu_base.isAnyAllowed(container, items)
 end
 
+
+-- --- @param recipe Recipe
+-- --- @param player IsoGameCharacter
+-- --- @param containersArr ArrayList
+-- --- @param item InventoryItem
+-- --- @return int
+-- function RecipeManager_patch.getNumberOfTimesRecipeCanBeDone(recipe, player, containersArr, item)
+--     local o = RecipeManager_base.getNumberOfTimesRecipeCanBeDone(recipe, player, containersArr, item)
+--     if not ZipContainer.isValidInArray(containersArr) then
+--         return o
+--     end
+
+--     local validationTable = {}
+--     local validationCount = 0
+--     local resultNumberTable = {}
+
+--     local recipeSources = recipe:getSource()
+--     local sourcesSize = recipeSources:size()
+--     for i = 0, sourcesSize - 1 do
+--         local rSource = recipeSources:get(i)
+--         local itemTypeList = rSource:getItems()
+--         local itemCount = rSource:getCount()
+--         local isKeep = rSource:isKeep()
+--         local hasItemCount = 0
+--         for j = 0, containersArr:size() - 1 do
+--             ---@type ItemContainer
+--             local container = containersArr:get(j)
+--             local zipContainer = ZipContainer:new(container)
+--             for k = 0, itemTypeList:size() -1 do
+--                 local itemType = itemTypeList:get(k)
+--                 hasItemCount = hasItemCount + container:getCountType(itemType)
+--                 if zipContainer then
+--                     hasItemCount = hasItemCount + zipContainer:countItems(itemType)
+--                 end
+--             end
+--         end
+--         if hasItemCount >= itemCount then
+--             validationCount = validationCount + 1
+--         end
+--         if not isKeep then
+--             table.insert(validationTable, hasItemCount)
+--         end
+--     end
+
+--     if sourcesSize ~= validationCount then
+--         return 0
+--     end
+
+--     for key, value in pairs(validationTable) do
+--         if value == 0 then
+--             return 0
+--         end
+--         local rSource = recipeSources:get(key-1)
+--         local count = rSource:getCount()
+--         local resulCount = value / count
+--         resulCount = resulCount - resulCount % 1
+--         resultNumberTable[key] = resulCount
+--     end
+
+--     table.sort(resultNumberTable)
+
+--     return resultNumberTable[1]
+-- end
+
+--- @param containersArr ArrayList
+--- @return ArrayList
+local function removeZipZontainerFromList(containersArr)
+    local copyContainersArr = containersArr:clone()
+    copyContainersArr:trimToSize()
+    for i = copyContainersArr:size() - 1, 0, -1 do
+        local container = copyContainersArr:get(i)
+        if container then
+            local zipContainer = ZipContainer:new(container)
+            if zipContainer then
+                copyContainersArr:remove(container)
+                copyContainersArr:trimToSize()
+            end
+        end
+    end
+    return copyContainersArr
+end
+
+-- --- @param selectedItem InventoryItem 
+-- --- @param context any
+-- --- @param recipeList ArrayList, 
+-- --- @param player IsoGameCharacter
+-- --- @param containerList ArrayList
+-- function ISInventoryPaneContextMenu_patch:addDynamicalContextMenu(selectedItem, context, recipeList, player, containerList)
+--     -- if 
+--     print('selectedItem', selectedItem, type(selectedItem))
+--     if selectedItem then
+--         -- local isZipContainer = ZipContainer.isValid(selectedItem:getContainer())
+--         -- if isZipContainer then
+--         --     recipeList:clear()
+--         -- end
+--     end
+--     return ISInventoryPaneContextMenu_base:addDynamicalContextMenu(selectedItem, context, recipeList, player, containerList)
+-- end
+
+
+--- @param recipe Recipe
+--- @param player IsoGameCharacter
+--- @param containersArr ArrayList
+--- @param selectedItem InventoryItem
+--- @param ignoreItems ArrayList
+--- @return ArrayList
+function RecipeManager_patch.getAvailableItemsNeeded(recipe, player, containersArr, selectedItem, ignoreItems)
+    if not ZipContainer.isValidInArray(containersArr) then
+        return RecipeManager_base.getAvailableItemsNeeded(recipe, player, containersArr, selectedItem, ignoreItems)
+    end
+    local copyContainersArr = containersArr:clone()
+    if recipe:isCanBeDoneFromFloor() then
+        copyContainersArr = removeZipZontainerFromList(containersArr)
+    end
+    -- if selectedItem then
+    --     local isZipContainer = ZipContainer.isValid(selectedItem:getContainer())
+    --     if isZipContainer then
+    --         return RecipeManager_base.getAvailableItemsNeeded(recipe, player, copyContainersArr, nil, ignoreItems)
+    --     end
+    -- end
+    return RecipeManager_base.getAvailableItemsNeeded(recipe, player, copyContainersArr, selectedItem, ignoreItems)
+end
+
 --- @param recipe Recipe
 --- @param player IsoGameCharacter
 --- @param containersArr ArrayList
 --- @param item InventoryItem
 --- @return int
 function RecipeManager_patch.getNumberOfTimesRecipeCanBeDone(recipe, player, containersArr, item)
-    local o = RecipeManager_base.getNumberOfTimesRecipeCanBeDone(recipe, player, containersArr, item)
     if not ZipContainer.isValidInArray(containersArr) then
-        return o
+        return RecipeManager_base.getNumberOfTimesRecipeCanBeDone(recipe, player, containersArr, item)
     end
-
-    local validationTable = {}
-    local validationCount = 0
-    local resultNumberTable = {}
-
-    local recipeSources = recipe:getSource()
-    local sourcesSize = recipeSources:size()
-    for i = 0, sourcesSize - 1 do
-        local rSource = recipeSources:get(i)
-        local itemTypeList = rSource:getItems()
-        local itemCount = rSource:getCount()
-        local isKeep = rSource:isKeep()
-        local hasItemCount = 0
-        for j = 0, containersArr:size() - 1 do
-            ---@type ItemContainer
-            local container = containersArr:get(j)
-            local zipContainer = ZipContainer:new(container)
-            for k = 0, itemTypeList:size() -1 do
-                local itemType = itemTypeList:get(k)
-                hasItemCount = hasItemCount + container:getCountType(itemType)
-                if zipContainer then
-                    hasItemCount = hasItemCount + zipContainer:countItems(itemType)
-                end
-            end
-        end
-        if hasItemCount >= itemCount then
-            validationCount = validationCount + 1
-        end
-        if not isKeep then
-            table.insert(validationTable, hasItemCount)
-        end
+    local copyContainersArr = containersArr:clone()
+    if recipe:isCanBeDoneFromFloor() then
+        copyContainersArr = removeZipZontainerFromList(containersArr)
     end
-
-    if sourcesSize ~= validationCount then
-        return 0
-    end
-
-    for key, value in pairs(validationTable) do
-        if value == 0 then
-            return 0
-        end
-        local rSource = recipeSources:get(key-1)
-        local count = rSource:getCount()
-        local resulCount = value / count
-        resulCount = resulCount - resulCount % 1
-        resultNumberTable[key] = resulCount
-    end
-
-    table.sort(resultNumberTable)
-
-    return resultNumberTable[1]
+    -- print('item', item)
+    -- if item then
+    --     local isZipContainer = ZipContainer.isValid(item:getContainer())
+    --     if isZipContainer then
+    --         print('isZip')
+    --         return 0
+    --     end
+    -- end
+    return RecipeManager_base.getNumberOfTimesRecipeCanBeDone(recipe, player, copyContainersArr, item)
 end
 
 --- @param recipe Recipe
@@ -172,19 +257,17 @@ function RecipeManager_patch.IsRecipeValid(recipe, player, item, containersArr)
         return RecipeManager_base.IsRecipeValid(recipe, player, item, containersArr)
     end
     local copyContainersArr = containersArr:clone()
-    copyContainersArr:trimToSize()
     if recipe:isCanBeDoneFromFloor() then
-        for i = copyContainersArr:size() - 1, 0, -1 do
-            local container = copyContainersArr:get(i)
-            if container then
-                local zipContainer = ZipContainer:new(container)
-                if zipContainer then
-                    copyContainersArr:remove(container)
-                    copyContainersArr:trimToSize()
-                end
+        copyContainersArr = removeZipZontainerFromList(containersArr)
+        if item then
+            local isZipContainer = ZipContainer.isValid(item:getContainer())
+            if isZipContainer then
+                -- print('isZip')
+                return false
             end
         end
     end
+    
     return RecipeManager_base.IsRecipeValid(recipe, player, item, copyContainersArr)
 end
 
@@ -383,6 +466,7 @@ local makeHooks = function ()
     ISInventoryPane.renderdetails = ISInventoryPane_patch.renderdetails
 
     ISInventoryPaneContextMenu.isAnyAllowed = ISInventoryPaneContextMenu_patch.isAnyAllowed
+    -- ISInventoryPaneContextMenu.addDynamicalContextMenu = ISInventoryPaneContextMenu_patch.addDynamicalContextMenu
 
     ISInventoryPage.selectContainer = ISInventoryPage_patch.selectContainer
     ISInventoryPage.setMaxDrawHeight = ISInventoryPage_patch.setMaxDrawHeight
@@ -397,6 +481,8 @@ local makeHooks = function ()
 
     RecipeManager.IsRecipeValid = RecipeManager_patch.IsRecipeValid
     RecipeManager.getAvailableItemsAll = RecipeManager_patch.getAvailableItemsAll
+    RecipeManager.getNumberOfTimesRecipeCanBeDone = RecipeManager_patch.getNumberOfTimesRecipeCanBeDone
+    RecipeManager.getAvailableItemsNeeded = RecipeManager_patch.getAvailableItemsNeeded
 
     sendClientCommand(getPlayer(), main.MOD_NAME, 'getWhiteList', {})
 end
@@ -407,6 +493,7 @@ local removeHooks = function ()
     ISInventoryPane.renderdetails = ISInventoryPane_base.renderdetails
 
     ISInventoryPaneContextMenu.isAnyAllowed = ISInventoryPaneContextMenu_base.isAnyAllowed
+    -- ISInventoryPaneContextMenu.addDynamicalContextMenu = ISInventoryPaneContextMenu_base.addDynamicalContextMenu
 
     ISInventoryPage.selectContainer = ISInventoryPage_base.selectContainer
     ISInventoryPage.setMaxDrawHeight = ISInventoryPage_base.setMaxDrawHeight
@@ -421,6 +508,8 @@ local removeHooks = function ()
 
     RecipeManager.getAvailableItemsAll = RecipeManager_base.getAvailableItemsAll
     RecipeManager.IsRecipeValid = RecipeManager_base.IsRecipeValid
+    RecipeManager.getNumberOfTimesRecipeCanBeDone = RecipeManager_base.getNumberOfTimesRecipeCanBeDone
+    RecipeManager.getAvailableItemsNeeded = RecipeManager_base.getAvailableItemsNeeded
 
     sendClientCommand(getPlayer(), main.MOD_NAME, 'refreshWhiteList', {})
 
